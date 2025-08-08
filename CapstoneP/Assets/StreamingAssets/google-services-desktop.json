@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "650684896978",
+    "project_id": "bee-cool-ec-life-learning",
+    "storage_bucket": "bee-cool-ec-life-learning.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:650684896978:android:56de9523a1e35b03bb3f0b",
+        "android_client_info": {
+          "package_name": "com.ECLife.BeeCool"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAcZOHFv_goN-Y7UcE7NR8bwMSJRias_PY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

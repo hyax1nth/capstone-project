@@ -1,0 +1,76 @@
+using UnityEngine;
+
+public class UIManager : MonoBehaviour
+{
+    public GameObject MainMenuPanel;
+    public GameObject LoginPanel;
+    public GameObject SignUpPanel;
+    public GameObject AgePanel;
+    public GameObject SubjectPanel;
+    public GameObject StudentHomePanel;
+
+    void Start()
+    {
+        ShowMainMenu();
+    }
+
+    public void ShowMainMenu()
+    {
+        MainMenuPanel.SetActive(true);
+        LoginPanel.SetActive(false);
+        SignUpPanel.SetActive(false);
+        AgePanel.SetActive(false);
+        SubjectPanel.SetActive(false);
+        StudentHomePanel.SetActive(false);
+    }
+
+    public void ShowLogin()
+    {
+        MainMenuPanel.SetActive(false);
+        LoginPanel.SetActive(true);
+        SignUpPanel.SetActive(false);
+        AgePanel.SetActive(false);
+        SubjectPanel.SetActive(false);
+        StudentHomePanel.SetActive(false);
+    }
+
+    public void ShowSignUp()
+    {
+        MainMenuPanel.SetActive(false);
+        LoginPanel.SetActive(false);
+        SignUpPanel.SetActive(true);
+        AgePanel.SetActive(false);
+        SubjectPanel.SetActive(false);
+        StudentHomePanel.SetActive(false);
+    }
+
+    public void ShowAgePanel()
+    {
+        MainMenuPanel.SetActive(false);
+        LoginPanel.SetActive(false);
+        SignUpPanel.SetActive(false);
+        AgePanel.SetActive(true);
+        SubjectPanel.SetActive(false);
+        StudentHomePanel.SetActive(false);
+    }
+
+    public void ShowSubjectPanel()
+    {
+        MainMenuPanel.SetActive(false);
+        LoginPanel.SetActive(false);
+        SignUpPanel.SetActive(false);
+        AgePanel.SetActive(false);
+        SubjectPanel.SetActive(true);
+        StudentHomePanel.SetActive(false);
+    }
+
+    public void ShowStudentHome()
+    {
+        MainMenuPanel.SetActive(false);
+        LoginPanel.SetActive(false);
+        SignUpPanel.SetActive(false);
+        AgePanel.SetActive(false);
+        SubjectPanel.SetActive(false);
+        StudentHomePanel.SetActive(true);
+    }
+}
