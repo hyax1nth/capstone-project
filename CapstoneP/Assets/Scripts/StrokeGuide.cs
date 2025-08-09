@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.Events;
 using System.Collections;
+using System;
 
 public class StrokeGuide : MonoBehaviour
 {
@@ -104,12 +105,10 @@ public class StrokeGuide : MonoBehaviour
                 offPathTimer += Time.deltaTime;
                 wasOffPath = true;
                 if (offPathTimer >= offPathGraceSeconds)
+                {
+                    ResetCurrentStroke();
                     return;
-            }
-            else
-            {
-                if (wasOffPath) wasOffPath = false;
-                offPathTimer = 0f;
+                }
             }
         }
 
@@ -123,6 +122,21 @@ public class StrokeGuide : MonoBehaviour
 
         if (OverEnd(worldPos))
             CompleteStroke();
+    }
+
+    private void ResetCurrentStroke()
+    {
+        Debug.Log($"[StrokeGuide:{name}] Stroke canceled — off path too long.");
+        isTracing = false;
+        offPathTimer = 0f;
+        wasOffPath = false;
+
+        if (currentLine != null)
+            Destroy(currentLine.gameObject);
+
+        currentLine = null;
+
+        // Optional: play a soft "oops" sound or flash feedback
     }
 
     public void CheckTouchEnd(Vector2 worldPos)
