@@ -37,16 +37,16 @@ public class AuthManager : MonoBehaviour
     {
         string email = loginEmailInput.text;
         string password = loginPasswordInput.text;
-        feedbackText.text = "Logging in...";
+    feedbackText.text = "Please wait, logging you in...";
         auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWith(task =>
         {
             if (task.IsCanceled || task.IsFaulted)
             {
-                feedbackText.text = "Login failed: " + task.Exception.Message;
+                feedbackText.text = "Login failed. Please check your email and password, or try again later.";
             }
             else
             {
-                feedbackText.text = "Login successful!";
+                feedbackText.text = "Welcome back! Login successful.";
                 // You can check for admin email here
                 if (email == "admin@email.com") // Replace with your admin email
                 {
@@ -66,16 +66,16 @@ public class AuthManager : MonoBehaviour
         string password = signUpPasswordInput.text;
         string firstName = signUpFirstNameInput.text;
         string lastName = signUpLastNameInput.text;
-        feedbackText.text = "Signing up...";
+    feedbackText.text = "Creating your account, please wait...";
         auth.CreateUserWithEmailAndPasswordAsync(email, password).ContinueWith(task =>
         {
             if (task.IsCanceled || task.IsFaulted)
             {
-                feedbackText.text = "Sign up failed: " + task.Exception.Message;
+                feedbackText.text = "Sign up failed. Please check your details or try again later.";
             }
             else
             {
-                feedbackText.text = "Sign up successful!";
+                feedbackText.text = "Account created! Welcome to Bee Cool.";
                 uiManager.ShowStudentHome();
                 // Save firstName and lastName to database if needed
             }
