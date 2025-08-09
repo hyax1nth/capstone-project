@@ -35,7 +35,7 @@ public class StrokeGuide : MonoBehaviour
     private bool isTracing = false;
     private bool isCompleted = false;
     private float offPathTimer = 0f;
-    private bool wasOffPath = false; // for logging transitions
+    private bool wasOffPath = false;
     private Color originalColor;
 
     private void Awake()
@@ -44,76 +44,39 @@ public class StrokeGuide : MonoBehaviour
             originalColor = guideRenderer.color;
 
         if (areaCollider == null)
-        {
             areaCollider = GetComponent<Collider2D>();
-            if (areaCollider == null)
-                Debug.LogWarning($"[StrokeGuide:{name}] No areaCollider assigned or found. Path enforcement will be disabled.");
-        }
 
         if (startCollider == null || endCollider == null)
         {
             foreach (Transform child in transform)
             {
-                if (child.CompareTag("TraceMarker"))
-                {
-                    var circle = child.GetComponent<CircleCollider2D>();
-                    if (circle == null) continue;
-                    string n = child.name.ToLower();
-                    if (n.Contains("start")) startCollider = circle;
-                    else if (n.Contains("end")) endCollider = circle;
-                }
+                if (!child.CompareTag("TraceMarker")) continue;
+                var circle = child.GetComponent<CircleCollider2D>();
+                if (!circle) continue;
+                string n = child.name.ToLower();
+                if (n.Contains("start")) startCollider = circle;
+                else if (n.Contains("end")) endCollider = circle;
             }
         }
 
-        if (startCollider == null)
-            Debug.LogWarning($"[StrokeGuide:{name}] Start collider missing. Assign G*_StartPoint in Inspector.");
-        if (endCollider == null)
-            Debug.LogWarning($"[StrokeGuide:{name}] End collider missing. Assign G*_EndPoint in Inspector.");
-
-        // Auto-find controller if unassigned
-        if (controller == null)
-        {
 #if UNITY_2023_1_OR_NEWER
+        if (controller == null)
             controller = FindFirstObjectByType<TracingController>(FindObjectsInactive.Exclude);
 #else
+        if (controller == null)
             controller = FindObjectOfType<TracingController>();
 #endif
-            if (controller == null)
-                Debug.LogWarning($"[StrokeGuide:{name}] TracingController not found. Handoff will not occur.");
-        }
     }
 
-    private bool OverStart(Vector2 p)
-    {
-        if (startCollider == null) return false;
-        return startCollider.OverlapPoint(p);
-    }
-
-    private bool OverEnd(Vector2 p)
-    {
-        if (endCollider == null) return false;
-        return endCollider.OverlapPoint(p);
-    }
-
+    private bool OverStart(Vector2 p) => startCollider != null && startCollider.OverlapPoint(p);
+    private bool OverEnd(Vector2 p) => endCollider != null && endCollider.OverlapPoint(p);
     private bool OnPath(Vector2 p) => !enforcePath || (areaCollider != null && areaCollider.OverlapPoint(p));
 
     public void CheckTouchStart(Vector2 worldPos)
     {
-        if (isCompleted)
-        {
-            Debug.Log($"[StrokeGuide:{name}] Ignoring start — stroke already completed.");
-            return;
-        }
-        if (requireStartOnDot && !OverStart(worldPos))
-        {
-            Debug.Log($"[StrokeGuide:{name}] Touch start rejected (not on start dot).");
-            return;
-        }
-        if (!OnPath(worldPos))
-        {
-            Debug.Log($"[StrokeGuide:{name}] Touch start rejected (not on path).");
-            return;
-        }
+        if (isCompleted) return;
+        if (requireStartOnDot && !OverStart(worldPos)) return;
+        if (!OnPath(worldPos)) return;
 
         isTracing = true;
         offPathTimer = 0f;
@@ -126,7 +89,6 @@ public class StrokeGuide : MonoBehaviour
         currentLine.positionCount = 1;
         currentLine.SetPosition(0, worldPos);
 
-        Debug.Log($"[StrokeGuide:{name}] Stroke started at {worldPos}. Line instance: {currentLine.name}");
         onStrokeActivated?.Invoke();
     }
 
@@ -140,21 +102,13 @@ public class StrokeGuide : MonoBehaviour
             if (!onPathNow)
             {
                 offPathTimer += Time.deltaTime;
-                if (!wasOffPath)
-                {
-                    wasOffPath = true;
-                    Debug.Log($"[StrokeGuide:{name}] Off path… starting grace timer.");
-                }
+                wasOffPath = true;
                 if (offPathTimer >= offPathGraceSeconds)
-                    return; // pause adding points
+                    return;
             }
             else
             {
-                if (wasOffPath)
-                {
-                    Debug.Log($"[StrokeGuide:{name}] Back on path. Grace timer reset.");
-                    wasOffPath = false;
-                }
+                if (wasOffPath) wasOffPath = false;
                 offPathTimer = 0f;
             }
         }
@@ -165,16 +119,10 @@ public class StrokeGuide : MonoBehaviour
             int next = currentLine.positionCount + 1;
             currentLine.positionCount = next;
             currentLine.SetPosition(next - 1, worldPos);
-            // Occasional breadcrumb log
-            if (next % 10 == 0)
-                Debug.Log($"[StrokeGuide:{name}] Points: {next}");
         }
 
         if (OverEnd(worldPos))
-        {
-            Debug.Log($"[StrokeGuide:{name}] End dot reached at {worldPos}.");
             CompleteStroke();
-        }
     }
 
     public void CheckTouchEnd(Vector2 worldPos)
@@ -183,12 +131,10 @@ public class StrokeGuide : MonoBehaviour
 
         if (OverEnd(worldPos))
         {
-            Debug.Log($"[StrokeGuide:{name}] Touch ended on end dot — completing stroke.");
             CompleteStroke();
             return;
         }
 
-        Debug.Log($"[StrokeGuide:{name}] Touch ended early — canceling stroke.");
         isTracing = false;
         currentLine = null;
         offPathTimer = 0f;
@@ -205,56 +151,41 @@ public class StrokeGuide : MonoBehaviour
         offPathTimer = 0f;
         wasOffPath = false;
 
-        Debug.Log($"[StrokeGuide:{name}] Stroke completed. Invoking events and triggering next guide.");
         onStrokeCompleted?.Invoke();
 
-        // Disable colliders to prevent retriggering this guide
+        // Prevent retriggering
         if (areaCollider) areaCollider.enabled = false;
         if (startCollider) startCollider.enabled = false;
         if (endCollider) endCollider.enabled = false;
 
-        TriggerNextGuide();
+        // Orchestrate: handoff first, then fade/disable
+        StartCoroutine(CompleteAndHandoff());
+    }
 
+    private IEnumerator CompleteAndHandoff()
+    {
+        // Wait for the configured delay before next
+        if (delayBeforeNext > 0f)
+            yield return new WaitForSeconds(delayBeforeNext);
+
+        // Activate and hand off input before any self-disable
+        if (nextGuide != null)
+        {
+            if (!nextGuide.gameObject.activeSelf)
+                nextGuide.gameObject.SetActive(true);
+
+            if (controller != null)
+                controller.SetCurrentGuide(nextGuide);
+        }
+
+        // Now fade and disable this guide (optional)
         if (fadeOutOnComplete && guideRenderer != null)
-            StartCoroutine(FadeOutAndDisable());
-        else
-            gameObject.SetActive(false);
+            yield return FadeOut();
+
+        gameObject.SetActive(false);
     }
 
-    private void TriggerNextGuide()
-    {
-        if (nextGuide == null)
-        {
-            Debug.Log($"[StrokeGuide:{name}] No next guide assigned — this might be the final stroke.");
-            return;
-        }
-
-        Debug.Log($"[StrokeGuide:{name}] Scheduling activation of next guide: {nextGuide.name} in {delayBeforeNext:0.00}s");
-        StartCoroutine(ActivateNextAfterDelay());
-    }
-
-    private IEnumerator ActivateNextAfterDelay()
-    {
-        yield return new WaitForSeconds(delayBeforeNext);
-
-        if (!nextGuide.gameObject.activeSelf)
-        {
-            nextGuide.gameObject.SetActive(true);
-            Debug.Log($"[StrokeGuide:{name}] Activated next guide: {nextGuide.name}");
-        }
-
-        if (controller != null)
-        {
-            controller.SetCurrentGuide(nextGuide);
-            Debug.Log($"[StrokeGuide:{name}] Handed off to next guide: {nextGuide.name}");
-        }
-        else
-        {
-            Debug.LogWarning($"[StrokeGuide:{name}] No TracingController assigned — cannot hand off input.");
-        }
-    }
-
-    private IEnumerator FadeOutAndDisable()
+    private IEnumerator FadeOut()
     {
         float t = 0f;
         Color start = guideRenderer.color;
@@ -267,7 +198,5 @@ public class StrokeGuide : MonoBehaviour
             guideRenderer.color = c;
             yield return null;
         }
-        Debug.Log($"[StrokeGuide:{name}] Guide visuals faded out. Disabling object.");
-        gameObject.SetActive(false);
     }
 }
