@@ -436,6 +436,7 @@ MonoBehaviour:
       m_Calls: []
   nextGuide: {fileID: 1758968300}
   delayBeforeNext: 0.5
+  controller: {fileID: 1978273968}
 --- !u!60 &635794382
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -647,6 +648,7 @@ MonoBehaviour:
       m_Calls: []
   nextGuide: {fileID: 635794381}
   delayBeforeNext: 0.5
+  controller: {fileID: 1978273968}
 --- !u!60 &733927733
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -1471,6 +1473,7 @@ MonoBehaviour:
       m_Calls: []
   nextGuide: {fileID: 0}
   delayBeforeNext: 0.5
+  controller: {fileID: 1978273968}
 --- !u!60 &1758968301
 PolygonCollider2D:
   m_ObjectHideFlags: 0

@@ -18,10 +18,18 @@ public class TracingController : MonoBehaviour
         if (currentGuide == null)
             currentGuide = FindObjectOfType<StrokeGuide>();
 #endif
+
+        if (currentGuide == null)
+            Debug.LogWarning("[TracingController] No initial StrokeGuide assigned/found.");
+        else
+            Debug.Log($"[TracingController] Initial currentGuide: {currentGuide.name}");
     }
 
     private void Update()
     {
+        if (currentGuide == null || !currentGuide.gameObject.activeInHierarchy)
+            return;
+
         Vector2 worldPos;
 
         // Touch input (mobile)
@@ -52,7 +60,7 @@ public class TracingController : MonoBehaviour
             return;
         }
 
-        // Mouse input (Editor or Desktop)
+        // Mouse input (Editor/Desktop)
         if (Mouse.current != null)
         {
             if (Mouse.current.leftButton.wasPressedThisFrame)
@@ -62,5 +70,14 @@ public class TracingController : MonoBehaviour
             else if (Mouse.current.leftButton.wasReleasedThisFrame)
                 currentGuide.CheckTouchEnd(inputCamera.ScreenToWorldPoint(Mouse.current.position.ReadValue()));
         }
+    }
+
+    public void SetCurrentGuide(StrokeGuide guide)
+    {
+        currentGuide = guide;
+        if (guide != null)
+            Debug.Log($"[TracingController] Switched currentGuide to: {guide.name}");
+        else
+            Debug.LogWarning("[TracingController] currentGuide set to null.");
     }
 }
