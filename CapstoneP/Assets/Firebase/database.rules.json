@@ -1,0 +1,31 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid || root.child('users/'+auth.uid+'/role').val() === 'admin'",
+        ".write": "$uid === auth.uid || root.child('users/'+auth.uid+'/role').val() === 'admin'",
+        "progress": {
+          "$subject": {
+            ".validate": "newData.hasChildren(['lessonCompleted', 'score'])",
+            "lessonCompleted": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "score": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            }
+          }
+        }
+      }
+    },
+    "catalog": {
+      ".read": "auth != null",
+      ".write": "root.child('users/'+auth.uid+'/role').val() === 'admin'"
+    },
+    "summaries": {
+      "$uid": {
+        ".read": "$uid === auth.uid || root.child('users/'+auth.uid+'/role').val() === 'admin'",
+        ".write": "root.child('users/'+auth.uid+'/role').val() === 'admin'"
+      }
+    }
+  }
+}

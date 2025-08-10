@@ -1,15 +1,16 @@
 {
   "project_info": {
-    "project_number": "650684896978",
-    "project_id": "bee-cool-ec-life-learning",
-    "storage_bucket": "bee-cool-ec-life-learning.firebasestorage.app"
+    "project_number": "204364084079",
+    "firebase_url": "https://ec-tutorial-bee-cool-default-rtdb.firebaseio.com",
+    "project_id": "ec-tutorial-bee-cool",
+    "storage_bucket": "ec-tutorial-bee-cool.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:650684896978:android:56de9523a1e35b03bb3f0b",
+        "mobilesdk_app_id": "1:204364084079:android:9684735cd9aba84d24ee9a",
         "android_client_info": {
-          "package_name": "com.ECLife.BeeCool"
+          "package_name": "com.ECTutorial.BeeCool"
         }
       },
       "oauth_client": [],
