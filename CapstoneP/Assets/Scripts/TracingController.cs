@@ -72,6 +72,12 @@ public class TracingController : MonoBehaviour
         }
     }
 
+    public void NotifyGuideCompleted(StrokeGuide guide)
+    {
+        Debug.Log($"Guide completed: {guide.name}");
+        // You can handle progression, score, logging, etc. here.
+    }
+
     public void SetCurrentGuide(StrokeGuide guide)
     {
         currentGuide = guide;

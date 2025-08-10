@@ -1,7 +1,8 @@
-﻿using UnityEngine;
+﻿// Full code starts here — minimal, complete, and ownership-aware
+
+using UnityEngine;
 using UnityEngine.Events;
 using System.Collections;
-using System;
 
 public class StrokeGuide : MonoBehaviour
 {
@@ -40,26 +41,28 @@ public class StrokeGuide : MonoBehaviour
     [SerializeField] private float idleHintDelay = 0.3f;
     [SerializeField] private IdleTraceHint idleHint;
 
+    [Header("Hint ownership")]
+    [SerializeField] private bool isStarter = false;
+    private static StrokeGuide currentHintOwner;
+    private bool suppressOnEnableHint = false;
+    private bool IsOwner => currentHintOwner == this;
+
     private LineRenderer currentLine;
     private bool isTracing = false;
     private bool isCompleted = false;
     private float offPathTimer = 0f;
     private bool wasOffPath = false;
-    private Color originalColor;
 
-    // Track endpoints hit during this trace
     private bool touchedStart = false;
     private bool touchedEnd = false;
+    private Coroutine hintDelayRoutine;
+    private Color originalColor;
 
     private void Awake()
     {
         if (idleHint == null) idleHint = GetComponent<IdleTraceHint>();
-
-        if (guideRenderer != null)
-            originalColor = guideRenderer.color;
-
-        if (areaCollider == null)
-            areaCollider = GetComponent<Collider2D>();
+        if (guideRenderer != null) originalColor = guideRenderer.color;
+        if (areaCollider == null) areaCollider = GetComponent<Collider2D>();
 
         if (startCollider == null || endCollider == null)
         {
@@ -85,15 +88,42 @@ public class StrokeGuide : MonoBehaviour
 
     private void OnEnable()
     {
-        if (!isCompleted && idleHint != null)
-            StartCoroutine(ShowHintDelayed());
+        if (currentHintOwner == null && isStarter)
+            currentHintOwner = this;
+
+        if (!isCompleted && idleHint != null && !suppressOnEnableHint && IsOwner)
+            hintDelayRoutine = StartCoroutine(ShowHintDelayed());
+    }
+
+    private void OnDisable()
+    {
+        CancelHintDelay();
+        if (isTracing || currentLine != null)
+        {
+            if (currentLine != null) Destroy(currentLine.gameObject);
+            currentLine = null;
+            isTracing = false;
+        }
+
+        if (IsOwner) currentHintOwner = null;
     }
 
     private IEnumerator ShowHintDelayed()
     {
         yield return new WaitForSeconds(idleHintDelay);
-        if (!isTracing && !isCompleted && idleHint != null)
+        if (IsOwner && !isTracing && !isCompleted && idleHint != null)
             idleHint.Show();
+        suppressOnEnableHint = false;
+        hintDelayRoutine = null;
+    }
+
+    private void CancelHintDelay()
+    {
+        if (hintDelayRoutine != null)
+        {
+            StopCoroutine(hintDelayRoutine);
+            hintDelayRoutine = null;
+        }
     }
 
     private bool OverStart(Vector2 p) => startCollider != null && startCollider.OverlapPoint(p);
@@ -106,14 +136,12 @@ public class StrokeGuide : MonoBehaviour
         if (requireStartOnDot && !OverStart(worldPos)) return;
         if (!OnPath(worldPos)) return;
 
-        // Hide the idle hint the moment the user begins a valid trace
+        CancelHintDelay();
         if (idleHint != null) idleHint.Hide();
 
         isTracing = true;
         offPathTimer = 0f;
         wasOffPath = false;
-
-        // mark start if they truly began on it
         touchedStart = OverStart(worldPos);
         touchedEnd = false;
 
@@ -146,7 +174,6 @@ public class StrokeGuide : MonoBehaviour
             }
             else
             {
-                // reset grace if they returned on path
                 offPathTimer = 0f;
                 wasOffPath = false;
             }
@@ -160,46 +187,23 @@ public class StrokeGuide : MonoBehaviour
             currentLine.SetPosition(next - 1, worldPos);
         }
 
-        // Track endpoint touches
         if (OverStart(worldPos)) touchedStart = true;
         if (OverEnd(worldPos)) touchedEnd = true;
 
-        // Complete only after start has been touched and we reach end
         if (touchedStart && OverEnd(worldPos))
             CompleteStroke();
-    }
-
-    private void ResetCurrentStroke()
-    {
-        Debug.Log($"[StrokeGuide:{name}] Stroke canceled — off path too long.");
-        isTracing = false;
-        offPathTimer = 0f;
-        wasOffPath = false;
-        touchedStart = false;
-        touchedEnd = false;
-
-        if (currentLine != null)
-            Destroy(currentLine.gameObject);
-
-        currentLine = null;
-
-        // Optionally reshow hint after a cancel (kid-friendly nudge)
-        if (!isCompleted && idleHint != null)
-            StartCoroutine(ShowHintDelayed());
     }
 
     public void CheckTouchEnd(Vector2 worldPos)
     {
         if (!isTracing) return;
 
-        // Allow lift-to-complete if they ended on the end dot and have touched start
         if (touchedStart && OverEnd(worldPos))
         {
             CompleteStroke();
             return;
         }
 
-        // User lifted without completing: clear the partial stroke
         isTracing = false;
         offPathTimer = 0f;
         wasOffPath = false;
@@ -210,9 +214,30 @@ public class StrokeGuide : MonoBehaviour
             Destroy(currentLine.gameObject);
         currentLine = null;
 
-        // Optionally show hint again
-        if (!isCompleted && idleHint != null)
-            StartCoroutine(ShowHintDelayed());
+        if (!isCompleted && idleHint != null && IsOwner)
+        {
+            CancelHintDelay();
+            hintDelayRoutine = StartCoroutine(ShowHintDelayed());
+        }
+    }
+
+    private void ResetCurrentStroke()
+    {
+        isTracing = false;
+        offPathTimer = 0f;
+        wasOffPath = false;
+        touchedStart = false;
+        touchedEnd = false;
+
+        if (currentLine != null)
+            Destroy(currentLine.gameObject);
+        currentLine = null;
+
+        if (!isCompleted && idleHint != null && IsOwner)
+        {
+            CancelHintDelay();
+            hintDelayRoutine = StartCoroutine(ShowHintDelayed());
+        }
     }
 
     private void CompleteStroke()
@@ -222,7 +247,6 @@ public class StrokeGuide : MonoBehaviour
         isTracing = false;
         isCompleted = true;
 
-        // Clear brush BEFORE nulling the reference
         if (currentLine != null)
         {
             if (fadeBrushOnComplete)
@@ -237,9 +261,10 @@ public class StrokeGuide : MonoBehaviour
         touchedStart = false;
         touchedEnd = false;
 
+        CancelHintDelay();
         onStrokeCompleted?.Invoke();
+        controller?.NotifyGuideCompleted(this);
 
-        // Reveal fill
         Transform fill = transform.Find("HoleFill");
         if (fill != null)
         {
@@ -251,43 +276,70 @@ public class StrokeGuide : MonoBehaviour
             }
         }
 
-        // Prevent retriggering
         if (areaCollider) areaCollider.enabled = false;
         if (startCollider) startCollider.enabled = false;
         if (endCollider) endCollider.enabled = false;
 
-        // Ensure hint is hidden on completion
         if (idleHint != null) idleHint.Hide();
 
-        // Orchestrate: handoff first, then fade/disable
         StartCoroutine(CompleteAndHandoff());
     }
 
     private IEnumerator CompleteAndHandoff()
     {
-        // Wait for the configured delay before next
         if (delayBeforeNext > 0f)
             yield return new WaitForSeconds(delayBeforeNext);
 
-        // Activate and hand off input
         if (nextGuide != null)
         {
-            if (!nextGuide.gameObject.activeSelf)
-                nextGuide.gameObject.SetActive(true);
-
-            if (controller != null)
-                controller.SetCurrentGuide(nextGuide);
-
-            // Show idle hint on the new active guide
-            if (nextGuide.idleHint != null)
-                nextGuide.idleHint.Show();
+            if (IsOwner) currentHintOwner = nextGuide;
+            nextGuide.suppressOnEnableHint = true;
+            controller?.SetCurrentGuide(nextGuide);
+            nextGuide.ShowHintImmediately();
         }
 
-        // Now fade and disable this guide (optional)
         if (fadeOutOnComplete && guideRenderer != null)
             yield return FadeOut();
 
-        gameObject.SetActive(false);
+        DisableGuideInteraction();
+    }
+
+    private void DisableGuideInteraction()
+    {
+        if (areaCollider) areaCollider.enabled = false;
+        if (startCollider) startCollider.enabled = false;
+        if (endCollider) endCollider.enabled = false;
+
+        if (idleHint != null)
+        {
+            idleHint.Hide();
+            idleHint.enabled = false;
+        }
+
+        isTracing = false;
+    }
+
+    public void ShowHintImmediately()
+    {
+        if (idleHint == null || isCompleted) return;
+        if (!IsOwner || isTracing) return;
+
+        CancelHintDelay();
+        idleHint.Show();
+    }
+
+    public void PlayHint()
+    {
+        if (idleHint == null || !IsOwner || isCompleted) return;
+        CancelHintDelay();
+        idleHint.Show();
+    }
+
+    public void StopHint()
+    {
+        if (idleHint == null) return;
+        idleHint.Hide();
+        idleHint.enabled = false;
     }
 
     private IEnumerator FadeInFill(SpriteRenderer sr)
@@ -329,8 +381,6 @@ public class StrokeGuide : MonoBehaviour
         if (lr == null) yield break;
 
         float t = 0f;
-
-        // Cache initial colors (works if no gradient; for gradients, swap to color gradient logic)
         var startColor = lr.startColor;
         var endColor = lr.endColor;
 
