@@ -3,26 +3,40 @@ using System.Collections;
 
 public class IdleTraceHint : MonoBehaviour
 {
-    [Header("Hint & Path")]
-    public Transform hint;                 // Hand/finger sprite transform
-    public Transform waypointsRoot;        // Parent of WP_00, WP_01, ...
+    public enum PathSource { WaypointTransforms, EdgeColliderPoints }
+    public enum LoopMode { Once, Loop, PingPong }
+    public enum StartAnchor { Start, End }
 
-    [Header("Timing")]
-    public float hintSpeed = 2.0f;         // Units per second along the path
-    public float fadeDuration = 0.5f;      // Fade in/out time
-    public float pauseDuration = 1.0f;     // Pause at the end before restarting
+    [Header("Hint & Path")]
+    public Transform hint;                  // the hand/pointer transform
+    public PathSource pathSource = PathSource.EdgeColliderPoints;
+
+    [Header("Waypoints (Transforms)")]
+    public Transform waypointsRoot;         // parent with WP_00, WP_01, ...
+
+    [Header("Edge Path")]
+    public EdgeCollider2D edge;             // source curve for points
+    public bool closeLoop = false;          // close path (useful for letter O)
+
+    [Header("Timing & Motion")]
+    public float hintSpeed = 2.0f;          // units per second
+    public float fadeDuration = 0.25f;
+    public float pauseDuration = 0.6f;      // pause at ends
+    public LoopMode loopMode = LoopMode.Once;
+    public StartAnchor startAnchor = StartAnchor.Start;
 
     [Header("Visuals")]
-    public float offsetDistance = 0.2f;    // Fixed perpendicular offset from path (XY plane)
-    public float fixedZRotation = 50f;     // Locked hand rotation
+    public float offsetDistance = 0.15f;    // perpendicular offset from path
+    public bool alignRotationToPath = false;
+    public float fixedZRotation = 50f;      // used if not aligning
 
     [Header("Playback")]
-    public bool playOnStart = true;        // Auto-start on Start()
-    public bool loop = true;               // Repeat forever
+    public bool playOnStart = false;        // keep false; StrokeGuide calls Show()
+    public bool loop = true;                // legacy; ignored—use loopMode instead
 
-    private Transform[] waypoints;
     private SpriteRenderer hintRenderer;
     private Coroutine runRoutine;
+    private Vector3[] pathWorld;            // baked world-space points
 
     void Awake()
     {
@@ -30,196 +44,241 @@ public class IdleTraceHint : MonoBehaviour
         hintRenderer = hint.GetComponent<SpriteRenderer>();
         if (!hintRenderer) hintRenderer = hint.GetComponentInChildren<SpriteRenderer>(true);
 
-        // Cache waypoints in child order
-        if (waypointsRoot)
-        {
-            int count = waypointsRoot.childCount;
-            waypoints = new Transform[count];
-            for (int i = 0; i < count; i++)
-                waypoints[i] = waypointsRoot.GetChild(i);
-        }
-        else
-        {
-            waypoints = new Transform[0];
-        }
-
+        // Hide by default; StrokeGuide.Show() decides when to play
         if (hint) hint.gameObject.SetActive(false);
     }
 
     void Start()
     {
-        if (waypoints == null || waypoints.Length == 0) return;
-
-        // Place at the start-of-path with offset derived from first segment
-        Vector3 startPos = GetSegmentAdjustedPointAtStart();
-        hint.position = startPos;
-        hint.rotation = Quaternion.Euler(0f, 0f, fixedZRotation);
-
-        // Ensure visible alpha (we’ll control fades)
-        SetAlpha(1f);
-
-        if (playOnStart)
-            runRoutine = StartCoroutine(RunLoop());
+        // Optional auto-play (generally leave off, StrokeGuide controls this)
+        if (playOnStart) Show();
     }
 
+    // Public API used by StrokeGuide
     public void Show()
     {
-        if (hint == null) return;
+        BuildPath();
+
+        if (pathWorld == null || pathWorld.Length < 2)
+        {
+            Debug.LogWarning("[IdleTraceHint] No valid path to play.", this);
+            return;
+        }
+
+        // Starting pose
+        int startIndex = (startAnchor == StartAnchor.Start) ? 0 : pathWorld.Length - 1;
+        hint.position = pathWorld[startIndex];
+
+        if (alignRotationToPath)
+            AlignRotationAt(startIndex);
+        else
+            hint.rotation = Quaternion.Euler(0f, 0f, fixedZRotation);
+
+        if (hintRenderer) SetAlpha(1f);
         hint.gameObject.SetActive(true);
-        SetAlpha(0f); // start transparent
+
         if (runRoutine != null) StopCoroutine(runRoutine);
-        runRoutine = StartCoroutine(RunLoop());
+        runRoutine = StartCoroutine(RunFollow());
     }
 
     public void Hide()
     {
+        if (runRoutine != null)
+        {
+            StopCoroutine(runRoutine);
+            runRoutine = null;
+        }
         if (hint) hint.gameObject.SetActive(false);
-        if (runRoutine != null) StopCoroutine(runRoutine);
-        runRoutine = null;
     }
 
     public void Restart()
     {
-        if (runRoutine != null) StopCoroutine(runRoutine);
-        runRoutine = StartCoroutine(RunLoop());
+        Hide();
+        Show();
     }
 
     void OnDisable()
     {
         if (runRoutine != null) StopCoroutine(runRoutine);
+        runRoutine = null;
     }
 
-    IEnumerator RunLoop()
+    // Build a world-space path from either child transforms or edge points
+    private void BuildPath()
     {
-        // Safety
-        if (waypoints.Length < 2 || hintSpeed <= 0f)
-            yield break;
-
-        // Optional: start with fade in if you want
-        yield return FadeTo(1f, fadeDuration);
-
-        do
+        if (pathSource == PathSource.WaypointTransforms)
         {
-            // Traverse each segment with a stable, precomputed perpendicular offset
-            for (int i = 0; i < waypoints.Length - 1; i++)
+            if (!waypointsRoot || waypointsRoot.childCount < 2)
             {
-                Vector3 a = waypoints[i].position;
-                Vector3 b = waypoints[i + 1].position;
-
-                Vector3 dir = b - a;
-                float len = dir.magnitude;
-                if (len < 0.0001f)
-                    continue; // skip degenerate segment
-
-                Vector3 n = dir / len;
-                Vector3 perp = new Vector3(-n.y, n.x, 0f); // XY-plane perpendicular
-                Vector3 offset = perp * offsetDistance;
-
-                Vector3 from = a + offset;
-                Vector3 to = b + offset;
-
-                float duration = Mathf.Max(0.0001f, len / hintSpeed);
-                float t = 0f;
-
-                // Lock rotation; we’re not aligning to path
-                hint.rotation = Quaternion.Euler(0f, 0f, fixedZRotation);
-
-                // Glide linearly from 'from' to 'to'
-                while (t < 1f)
-                {
-                    hint.position = Vector3.Lerp(from, to, t);
-                    t += Time.deltaTime / duration;
-                    yield return null;
-                }
-                hint.position = to; // ensure exact end
+                pathWorld = null;
+                return;
             }
 
-            // Fade out at end, pause, reset to start, fade in
-            yield return FadeTo(0f, fadeDuration);
-            yield return new WaitForSeconds(pauseDuration);
+            int n = waypointsRoot.childCount;
+            pathWorld = new Vector3[n + (closeLoop ? 1 : 0)];
+            for (int i = 0; i < n; i++)
+                pathWorld[i] = waypointsRoot.GetChild(i).position;
 
-            // Reset to the same offset-relative start
-            hint.position = GetSegmentAdjustedPointAtStart();
-            hint.rotation = Quaternion.Euler(0f, 0f, fixedZRotation);
+            if (closeLoop) pathWorld[n] = pathWorld[0];
 
-            yield return FadeTo(1f, fadeDuration);
+            // Apply perpendicular offset per segment (approximate first segment)
+            ApplyOffsetApprox();
+        }
+        else // EdgeColliderPoints
+        {
+            if (!edge || edge.pointCount < 2)
+            {
+                pathWorld = null;
+                return;
+            }
 
-        } while (loop);
+            var pts = edge.points; // local to edge.transform
+            int n = pts.Length;
+            int total = n + (closeLoop ? 1 : 0);
+            pathWorld = new Vector3[total];
+            for (int i = 0; i < n; i++)
+                pathWorld[i] = edge.transform.TransformPoint(pts[i]);
+            if (closeLoop) pathWorld[n] = pathWorld[0];
+
+            ApplyOffsetPerSegment();
+        }
     }
 
-    Vector3 GetSegmentAdjustedPointAtStart()
+    private IEnumerator RunFollow()
     {
-        if (waypoints.Length == 0) return hint.position;
+        // Fade in
+        yield return FadeTo(1f, fadeDuration);
 
-        if (waypoints.Length == 1)
-            return waypoints[0].position;
+        int dir = (startAnchor == StartAnchor.Start) ? +1 : -1;
+        int index = (startAnchor == StartAnchor.Start) ? 0 : pathWorld.Length - 1;
 
-        Vector3 a = waypoints[0].position;
-        Vector3 b = waypoints[1].position;
-        Vector3 dir = b - a;
-        float len = dir.magnitude;
+        while (true)
+        {
+            int nextIndex = index + dir;
 
-        if (len < 0.0001f)
-            return a;
+            // End handling
+            if (nextIndex < 0 || nextIndex >= pathWorld.Length)
+            {
+                // Reached the end
+                yield return FadeTo(0f, fadeDuration);
+                yield return new WaitForSeconds(pauseDuration);
 
-        Vector3 n = dir / len;
-        Vector3 perp = new Vector3(-n.y, n.x, 0f);
-        return a + perp * offsetDistance;
+                if (loopMode == LoopMode.Once)
+                {
+                    // Stop after one pass
+                    hint.gameObject.SetActive(false);
+                    runRoutine = null;
+                    yield break;
+                }
+                else if (loopMode == LoopMode.Loop)
+                {
+                    // restart same direction
+                    index = (startAnchor == StartAnchor.Start) ? 0 : pathWorld.Length - 1;
+                    if (hintRenderer) SetAlpha(1f);
+                    hint.gameObject.SetActive(true);
+                    continue;
+                }
+                else // PingPong
+                {
+                    dir *= -1;
+                    // clamp just inside the path bounds
+                    index = Mathf.Clamp(index + dir, 0, pathWorld.Length - 1);
+                    if (hintRenderer) SetAlpha(1f);
+                    hint.gameObject.SetActive(true);
+                    continue;
+                }
+            }
+
+            Vector3 from = pathWorld[index];
+            Vector3 to = pathWorld[nextIndex];
+
+            float len = Vector3.Distance(from, to);
+            float duration = Mathf.Max(0.0001f, len / hintSpeed);
+            float t = 0f;
+
+            // Rotation handling
+            if (alignRotationToPath)
+                hint.rotation = Quaternion.LookRotation(Vector3.forward, (to - from).normalized);
+            else
+                hint.rotation = Quaternion.Euler(0f, 0f, fixedZRotation);
+
+            // Move
+            while (t < 1f)
+            {
+                hint.position = Vector3.Lerp(from, to, t);
+                t += Time.deltaTime / duration;
+                yield return null;
+            }
+            hint.position = to;
+
+            index = nextIndex;
+        }
     }
 
-    IEnumerator FadeTo(float targetAlpha, float duration)
+    private void ApplyOffsetApprox()
+    {
+        if (Mathf.Approximately(offsetDistance, 0f)) return;
+        if (pathWorld == null || pathWorld.Length < 2) return;
+
+        // Use first segment to define offset direction (simple, consistent)
+        Vector3 a = pathWorld[0];
+        Vector3 b = pathWorld[1];
+        Vector3 dir = (b - a).normalized;
+        Vector3 perp = new Vector3(-dir.y, dir.x, 0f) * offsetDistance;
+
+        for (int i = 0; i < pathWorld.Length; i++)
+            pathWorld[i] += perp;
+    }
+
+    private void ApplyOffsetPerSegment()
+    {
+        if (Mathf.Approximately(offsetDistance, 0f)) return;
+        if (pathWorld == null || pathWorld.Length < 2) return;
+
+        // Per-point offset using adjacent segment (smoother around curves)
+        Vector3[] offset = new Vector3[pathWorld.Length];
+
+        for (int i = 0; i < pathWorld.Length - 1; i++)
+        {
+            Vector3 dir = (pathWorld[i + 1] - pathWorld[i]).normalized;
+            Vector3 perp = new Vector3(-dir.y, dir.x, 0f) * offsetDistance;
+            offset[i] += perp;
+            offset[i + 1] += perp;
+        }
+
+        for (int i = 0; i < pathWorld.Length; i++)
+            pathWorld[i] += offset[i] * 0.5f; // average
+    }
+
+    private void AlignRotationAt(int idx)
+    {
+        int next = Mathf.Clamp(idx + 1, 0, pathWorld.Length - 1);
+        Vector3 dir = (pathWorld[next] - pathWorld[idx]).normalized;
+        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f; // up axis
+        hint.rotation = Quaternion.Euler(0f, 0f, angle);
+    }
+
+    private IEnumerator FadeTo(float targetAlpha, float duration)
     {
         if (!hintRenderer || duration <= 0f)
-        {
-            SetAlpha(targetAlpha);
             yield break;
-        }
 
         float startAlpha = hintRenderer.color.a;
         float t = 0f;
         while (t < 1f)
         {
-            float a = Mathf.Lerp(startAlpha, targetAlpha, t);
-            SetAlpha(a);
+            SetAlpha(Mathf.Lerp(startAlpha, targetAlpha, t));
             t += Time.deltaTime / duration;
             yield return null;
         }
         SetAlpha(targetAlpha);
     }
 
-    void SetAlpha(float a)
+    private void SetAlpha(float a)
     {
         if (!hintRenderer) return;
-        Color c = hintRenderer.color;
+        var c = hintRenderer.color;
         c.a = a;
         hintRenderer.color = c;
     }
-
-#if UNITY_EDITOR
-    // Optional gizmos to visualize the offset path in Scene view
-    void OnDrawGizmosSelected()
-    {
-        if (!waypointsRoot || waypointsRoot.childCount < 2) return;
-
-        Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.8f);
-        for (int i = 0; i < waypointsRoot.childCount - 1; i++)
-        {
-            Vector3 a = waypointsRoot.GetChild(i).position;
-            Vector3 b = waypointsRoot.GetChild(i + 1).position;
-
-            Vector3 dir = b - a;
-            float len = dir.magnitude;
-            if (len < 0.0001f) continue;
-
-            Vector3 n = dir / Mathf.Max(0.0001f, len);
-            Vector3 perp = new Vector3(-n.y, n.x, 0f);
-            Vector3 off = perp * offsetDistance;
-
-            Vector3 from = a + off;
-            Vector3 to = b + off;
-
-            Gizmos.DrawLine(from, to);
-        }
-    }
-#endif
 }
