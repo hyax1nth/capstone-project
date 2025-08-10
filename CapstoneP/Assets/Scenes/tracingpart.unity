@@ -849,12 +849,12 @@ MonoBehaviour:
   edge: {fileID: 979481836}
   closeLoop: 0
   hintSpeed: 2
-  fadeDuration: 0.5
+  fadeDuration: 2
   pauseDuration: 1
   loopMode: 1
   startAnchor: 0
-  offsetDistance: 0
-  alignRotationToPath: 1
+  offsetDistance: 0.5
+  alignRotationToPath: 0
   fixedZRotation: 50
   playOnStart: 0
   loop: 1
@@ -927,22 +927,16 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -0.44048387, y: 0.0671661}
-  - {x: 0.06640088, y: 0.07906392}
-  - {x: 0.44046253, y: 0.056231916}
-  - {x: 0.7662991, y: -0.018155634}
-  - {x: 1.0516458, y: -0.16944107}
-  - {x: 1.2448069, y: -0.34061214}
-  - {x: 1.3471135, y: -0.46904808}
-  - {x: 1.3590041, y: -0.6836424}
-  - {x: 1.2927119, y: -0.9050348}
-  - {x: 1.224469, y: -1.0571494}
-  - {x: 1.0245401, y: -1.2474115}
-  - {x: 0.810073, y: -1.3607508}
-  - {x: 0.55954367, y: -1.4705685}
-  - {x: 0.2523832, y: -1.5391006}
-  - {x: -0.03227768, y: -1.582374}
-  - {x: -0.42394274, y: -1.5897249}
+  - {x: -0.2139451, y: -0.5114317}
+  - {x: 0.28339958, y: -0.49928245}
+  - {x: 0.7376512, y: -0.50638074}
+  - {x: 1.0930152, y: -0.66974473}
+  - {x: 1.195823, y: -0.81987053}
+  - {x: 1.2371602, y: -1.138333}
+  - {x: 1.1333394, y: -1.2930845}
+  - {x: 0.8480232, y: -1.5877845}
+  - {x: 0.4910332, y: -1.7323859}
+  - {x: 0.066583455, y: -1.8290176}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
@@ -1001,7 +995,7 @@ MonoBehaviour:
   fadeDuration: 0.5
   pauseDuration: 1
   loopMode: 1
-  startAnchor: 1
+  startAnchor: 0
   offsetDistance: 0.15
   alignRotationToPath: 0
   fixedZRotation: 50
@@ -1076,17 +1070,12 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -0.38564968, y: -1.9593147}
-  - {x: -0.060350418, y: -1.822604}
-  - {x: 0.3006102, y: -1.6618097}
-  - {x: 0.62020826, y: -1.4824281}
-  - {x: 0.8263905, y: -1.3429508}
-  - {x: 1.0302515, y: -1.1174216}
-  - {x: 1.1539966, y: -0.84935063}
-  - {x: 1.1311712, y: -0.5824672}
-  - {x: 1.0659544, y: -0.35320097}
-  - {x: 0.863629, y: -0.15938954}
-  - {x: 0.5, y: 0}
+  - {x: 0.28043985, y: 0.05281656}
+  - {x: 0.6815101, y: -0.08976218}
+  - {x: 1.0794439, y: -0.4998254}
+  - {x: 0.92510915, y: -1.0221636}
+  - {x: 0.23337565, y: -1.521082}
+  - {x: -0.559183, y: -1.8157651}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
