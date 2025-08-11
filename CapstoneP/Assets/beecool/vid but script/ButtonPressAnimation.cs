@@ -6,13 +6,13 @@ using UnityEngine.EventSystems;
 public class ButtonPressAnimation : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
 {
     [Header("Animation Settings")]
-    [SerializeField] private float pressedYOffset = -3f; // How far down the button moves when pressed
+    [SerializeField] private float pressedYOffset = -5f; // How far down the button moves when pressed
     [SerializeField] private float animationSpeed = 15f; // Speed of the animation
 
     private RectTransform rectTransform;
     private Vector2 originalPosition;
     private Vector2 pressedPosition;
-    private bool isPressed = false;
+    private bool stayPressed = false;
 
     private void Awake()
     {
@@ -24,7 +24,7 @@ public class ButtonPressAnimation : MonoBehaviour, IPointerDownHandler, IPointer
     private void Update()
     {
         // Smoothly animate to target position
-        Vector2 targetPosition = isPressed ? pressedPosition : originalPosition;
+        Vector2 targetPosition = stayPressed ? pressedPosition : originalPosition;
         rectTransform.anchoredPosition = Vector2.Lerp(
             rectTransform.anchoredPosition,
             targetPosition,
@@ -32,18 +32,27 @@ public class ButtonPressAnimation : MonoBehaviour, IPointerDownHandler, IPointer
         );
     }
 
+    public void SetStayPressed(bool stay)
+    {
+        stayPressed = stay;
+    }
+
     public void OnPointerDown(PointerEventData eventData)
     {
-        isPressed = true;
+        // Temporary press effect when clicking
+        if (!stayPressed)
+        {
+            rectTransform.anchoredPosition = pressedPosition;
+        }
     }
 
     public void OnPointerUp(PointerEventData eventData)
     {
-        isPressed = false;
+        // Let the Update function handle the position
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        isPressed = false;
+        // Let the Update function handle the position
     }
 }

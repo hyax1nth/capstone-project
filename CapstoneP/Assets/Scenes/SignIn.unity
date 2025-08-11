@@ -2038,7 +2038,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1551768414}
   - component: {fileID: 1551768413}
-  - component: {fileID: 1551768415}
   m_Layer: 0
   m_Name: ui
   m_TagString: Untagged
@@ -2063,6 +2062,7 @@ MonoBehaviour:
   ShowPassword: {fileID: 133001753}
   Feedback: {fileID: 1630839015}
   SignInButton: {fileID: 1673166539}
+  BackButton: {fileID: 421012064}
 --- !u!4 &1551768414
 Transform:
   m_ObjectHideFlags: 0
@@ -2078,20 +2078,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1551768415
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1551768412}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d12f9c9836014d4459e5679fa4b31815, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  backButton: {fileID: 421012064}
-  mainMenuSceneName: MainMenu
 --- !u!1 &1624097215
 GameObject:
   m_ObjectHideFlags: 0

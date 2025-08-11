@@ -3648,6 +3648,7 @@ MonoBehaviour:
   ShowPassword: {fileID: 20659829}
   Feedback: {fileID: 759377084}
   SignUpButton: {fileID: 721912275}
+  BackButton: {fileID: 1985194580}
 --- !u!114 &1939077311
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -546,7 +546,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 477a1fe0fb6e0ed48b48b6aa72bfbb54, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pressedYOffset: -10
+  pressedYOffset: -40
   animationSpeed: 15
 --- !u!1 &459257633
 GameObject:
@@ -1836,7 +1836,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 477a1fe0fb6e0ed48b48b6aa72bfbb54, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pressedYOffset: -10
+  pressedYOffset: -40
   animationSpeed: 15
 --- !u!1 &2035494279
 GameObject:
