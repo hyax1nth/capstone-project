@@ -3,7 +3,8 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
-  tags: []
+  tags:
+  - TraceMarker
   layers:
   - Default
   - TransparentFX
@@ -40,6 +41,21 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Background
+    uniqueID: 2504773955
+    locked: 0
+  - name: Guides
+    uniqueID: 866435627
+    locked: 0
+  - name: Hole
+    uniqueID: 1293258457
+    locked: 0
+  - name: Brush
+    uniqueID: 2539146581
+    locked: 0
+  - name: UI
+    uniqueID: 3161632175
     locked: 0
   m_RenderingLayers:
   - Default
