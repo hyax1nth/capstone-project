@@ -11,14 +11,11 @@ public class SignInController : MonoBehaviour
     public Toggle ShowPassword;
     public TMP_Text Feedback;
     public Button SignInButton;
-    public Button BackButton;
 
     private void Start()
     {
         ShowPassword.onValueChanged.AddListener(OnShowPasswordChanged);
         SignInButton.onClick.AddListener(OnSignInPressed);
-        if (BackButton != null)
-            BackButton.onClick.AddListener(() => SessionRouter.RouteToMainMenu());
     }
 
     private void OnShowPasswordChanged(bool show)
@@ -51,7 +48,13 @@ public class SignInController : MonoBehaviour
                 return;
             }
 
-            // Always go to StudentDashboard on sign in - skip onboarding
+            bool isProfileComplete = await UserProfileService.Instance.EnsureProfileCompleteness(userId);
+            if (!isProfileComplete)
+            {
+                SessionRouter.RouteToOnboardingAge();
+                return;
+            }
+
             SessionRouter.RouteToStudentDashboard();
         }
         catch (System.Exception ex)

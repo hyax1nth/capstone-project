@@ -12,7 +12,7 @@ public class ButtonPressAnimation : MonoBehaviour, IPointerDownHandler, IPointer
     private RectTransform rectTransform;
     private Vector2 originalPosition;
     private Vector2 pressedPosition;
-    private bool stayPressed = false;
+    private bool isPressed = false;
 
     private void Awake()
     {
@@ -24,7 +24,7 @@ public class ButtonPressAnimation : MonoBehaviour, IPointerDownHandler, IPointer
     private void Update()
     {
         // Smoothly animate to target position
-        Vector2 targetPosition = stayPressed ? pressedPosition : originalPosition;
+        Vector2 targetPosition = isPressed ? pressedPosition : originalPosition;
         rectTransform.anchoredPosition = Vector2.Lerp(
             rectTransform.anchoredPosition,
             targetPosition,
@@ -32,27 +32,18 @@ public class ButtonPressAnimation : MonoBehaviour, IPointerDownHandler, IPointer
         );
     }
 
-    public void SetStayPressed(bool stay)
-    {
-        stayPressed = stay;
-    }
-
     public void OnPointerDown(PointerEventData eventData)
     {
-        // Temporary press effect when clicking
-        if (!stayPressed)
-        {
-            rectTransform.anchoredPosition = pressedPosition;
-        }
+        isPressed = true;
     }
 
     public void OnPointerUp(PointerEventData eventData)
     {
-        // Let the Update function handle the position
+        isPressed = false;
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        // Let the Update function handle the position
+        isPressed = false;
     }
 }

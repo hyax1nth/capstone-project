@@ -12,14 +12,11 @@ public class SignUpController : MonoBehaviour
     public Toggle ShowPassword;
     public TMP_Text Feedback;
     public Button SignUpButton;
-    public Button BackButton;
 
     private void Start()
     {
         ShowPassword.onValueChanged.AddListener(OnShowPasswordChanged);
         SignUpButton.onClick.AddListener(OnSignUpPressed);
-        if (BackButton != null)
-            BackButton.onClick.AddListener(() => SessionRouter.RouteToMainMenu());
     }
 
     private void OnShowPasswordChanged(bool show)

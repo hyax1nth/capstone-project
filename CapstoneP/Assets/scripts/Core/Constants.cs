@@ -4,8 +4,8 @@ public static class Constants
 {
     public static readonly string[] DefaultSubjects = { "English", "Math", "Science", "Art", "Music" };
     public const int LessonsPerSubject = 5;
-    public const int MinAge = 1;
-    public const int MaxAge = 7;
+    public const int MinAge = 4;
+    public const int MaxAge = 10;
     
     public static class Scenes
     {
