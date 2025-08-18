@@ -1,6 +1,4 @@
-﻿// Full code starts here — minimal, complete, and ownership-aware
-
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Events;
 using System.Collections;
 
@@ -11,6 +9,9 @@ public class StrokeGuide : MonoBehaviour
     [SerializeField] private Collider2D areaCollider;
     [SerializeField] private CircleCollider2D startCollider;
     [SerializeField] private CircleCollider2D endCollider;
+
+    [SerializeField] private LayerMask checkpointLayer;       // set this in Inspector
+    [SerializeField] private float checkpointDetectRadius = 0.08f; // tweak to match stroke width
 
     [Header("Brush")]
     [SerializeField] private LineRenderer linePrefab;
@@ -57,6 +58,10 @@ public class StrokeGuide : MonoBehaviour
     private bool touchedEnd = false;
     private Coroutine hintDelayRoutine;
     private Color originalColor;
+
+    [Header("Checkpoints (Optional)")]
+    [SerializeField] private int totalCheckpoints = 0; // set >0 to require coverage
+    private int checkpointsHit = 0;
 
     private void Awake()
     {
@@ -130,6 +135,26 @@ public class StrokeGuide : MonoBehaviour
     private bool OverEnd(Vector2 p) => endCollider != null && endCollider.OverlapPoint(p);
     private bool OnPath(Vector2 p) => !enforcePath || (areaCollider != null && areaCollider.OverlapPoint(p));
 
+    // Checkpoint API
+    public void RegisterCheckpoint(int index)
+    {
+        if (index == checkpointsHit + 1)
+        {
+            Debug.Log($"Checkpoint {index} hit! Total now: {checkpointsHit}/{totalCheckpoints}");
+            checkpointsHit++;
+        }
+    }
+
+    public bool AllCheckpointsHit()
+    {
+        return totalCheckpoints == 0 || checkpointsHit >= totalCheckpoints;
+    }
+
+    public void ResetCheckpoints()
+    {
+        checkpointsHit = 0;
+    }
+
     public void CheckTouchStart(Vector2 worldPos)
     {
         if (isCompleted) return;
@@ -145,6 +170,8 @@ public class StrokeGuide : MonoBehaviour
         touchedStart = OverStart(worldPos);
         touchedEnd = false;
 
+        ResetCheckpoints(); // reset progress at start
+
         currentLine = Instantiate(linePrefab, brushContainer);
         currentLine.useWorldSpace = true;
         currentLine.alignment = LineAlignment.View;
@@ -156,49 +183,61 @@ public class StrokeGuide : MonoBehaviour
     }
 
     public void TrackStroke(Vector2 worldPos)
+{
+    if (!isTracing || currentLine == null) return;
+
+    if (enforcePath && areaCollider != null)
     {
-        if (!isTracing || currentLine == null) return;
-
-        if (enforcePath && areaCollider != null)
+        bool onPathNow = areaCollider.OverlapPoint(worldPos);
+        if (!onPathNow)
         {
-            bool onPathNow = areaCollider.OverlapPoint(worldPos);
-            if (!onPathNow)
+            offPathTimer += Time.deltaTime;
+            wasOffPath = true;
+            if (offPathTimer >= offPathGraceSeconds)
             {
-                offPathTimer += Time.deltaTime;
-                wasOffPath = true;
-                if (offPathTimer >= offPathGraceSeconds)
-                {
-                    ResetCurrentStroke();
-                    return;
-                }
-            }
-            else
-            {
-                offPathTimer = 0f;
-                wasOffPath = false;
+                ResetCurrentStroke();
+                return;
             }
         }
-
-        Vector3 last = currentLine.GetPosition(currentLine.positionCount - 1);
-        if (Vector2.Distance(last, worldPos) >= minPointDistance)
+        else
         {
-            int next = currentLine.positionCount + 1;
-            currentLine.positionCount = next;
-            currentLine.SetPosition(next - 1, worldPos);
+            offPathTimer = 0f;
+            wasOffPath = false;
         }
-
-        if (OverStart(worldPos)) touchedStart = true;
-        if (OverEnd(worldPos)) touchedEnd = true;
-
-        if (touchedStart && OverEnd(worldPos))
-            CompleteStroke();
     }
+
+    Vector3 last = currentLine.GetPosition(currentLine.positionCount - 1);
+    if (Vector2.Distance(last, worldPos) >= minPointDistance)
+    {
+        int next = currentLine.positionCount + 1;
+        currentLine.positionCount = next;
+        currentLine.SetPosition(next - 1, worldPos);
+    }
+
+    // Detect checkpoints directly from touch/mouse position
+    Collider2D hit = Physics2D.OverlapPoint(worldPos);
+    if (hit != null)
+    {
+        var cp = hit.GetComponent<Checkpoint>(); // your CP script name
+        if (cp != null)
+        {
+            RegisterCheckpoint(cp.checkpointIndex);
+        }
+    }
+
+    if (OverStart(worldPos)) touchedStart = true;
+    if (OverEnd(worldPos)) touchedEnd = true;
+
+    if (touchedStart && OverEnd(worldPos) && AllCheckpointsHit())
+        CompleteStroke();
+}
 
     public void CheckTouchEnd(Vector2 worldPos)
     {
         if (!isTracing) return;
 
-        if (touchedStart && OverEnd(worldPos))
+        // Gate completion by checkpoints
+        if (touchedStart && OverEnd(worldPos) && AllCheckpointsHit())
         {
             CompleteStroke();
             return;
@@ -221,13 +260,15 @@ public class StrokeGuide : MonoBehaviour
         }
     }
 
-    private void ResetCurrentStroke()
+    public void ResetCurrentStroke()
     {
         isTracing = false;
         offPathTimer = 0f;
         wasOffPath = false;
         touchedStart = false;
         touchedEnd = false;
+
+        ResetCheckpoints(); // clear checkpoint state
 
         if (currentLine != null)
             Destroy(currentLine.gameObject);
