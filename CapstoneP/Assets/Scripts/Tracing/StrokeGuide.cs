@@ -10,6 +10,7 @@ public class StrokeGuide : MonoBehaviour
     [SerializeField] private CircleCollider2D startCollider;
     [SerializeField] private CircleCollider2D endCollider;
 
+    // Add near your other serialized fields
     [SerializeField] private LayerMask checkpointLayer;       // set this in Inspector
     [SerializeField] private float checkpointDetectRadius = 0.08f; // tweak to match stroke width
 
@@ -183,54 +184,57 @@ public class StrokeGuide : MonoBehaviour
     }
 
     public void TrackStroke(Vector2 worldPos)
-{
-    if (!isTracing || currentLine == null) return;
-
-    if (enforcePath && areaCollider != null)
     {
-        bool onPathNow = areaCollider.OverlapPoint(worldPos);
-        if (!onPathNow)
+        if (!isTracing || currentLine == null) return;
+
+        if (enforcePath && areaCollider != null)
         {
-            offPathTimer += Time.deltaTime;
-            wasOffPath = true;
-            if (offPathTimer >= offPathGraceSeconds)
+            bool onPathNow = areaCollider.OverlapPoint(worldPos);
+            if (!onPathNow)
             {
-                ResetCurrentStroke();
-                return;
+                offPathTimer += Time.deltaTime;
+                wasOffPath = true;
+                if (offPathTimer >= offPathGraceSeconds)
+                {
+                    ResetCurrentStroke();
+                    return;
+                }
+            }
+            else
+            {
+                offPathTimer = 0f;
+                wasOffPath = false;
             }
         }
-        else
+
+        Vector3 last = currentLine.GetPosition(currentLine.positionCount - 1);
+        if (Vector2.Distance(last, worldPos) >= minPointDistance)
         {
-            offPathTimer = 0f;
-            wasOffPath = false;
+            int next = currentLine.positionCount + 1;
+            currentLine.positionCount = next;
+            currentLine.SetPosition(next - 1, worldPos);
         }
-    }
 
-    Vector3 last = currentLine.GetPosition(currentLine.positionCount - 1);
-    if (Vector2.Distance(last, worldPos) >= minPointDistance)
-    {
-        int next = currentLine.positionCount + 1;
-        currentLine.positionCount = next;
-        currentLine.SetPosition(next - 1, worldPos);
-    }
-
-    // Detect checkpoints directly from touch/mouse position
-    Collider2D hit = Physics2D.OverlapPoint(worldPos);
-    if (hit != null)
-    {
-        var cp = hit.GetComponent<Checkpoint>(); // your CP script name
-        if (cp != null)
+        // --- Updated checkpoint detection ---
+        // Use OverlapCircleAll so guide's collider doesn't block the hit
+        var hits = Physics2D.OverlapCircleAll(worldPos, checkpointDetectRadius, checkpointLayer);
+        for (int i = 0; i < hits.Length; i++)
         {
-            RegisterCheckpoint(cp.checkpointIndex);
+            var cp = hits[i].GetComponent<Checkpoint>();
+            if (cp != null)
+            {
+                RegisterCheckpoint(cp.checkpointIndex);
+                // Debug.Log($"Checkpoint {cp.checkpointIndex} hit!");
+            }
         }
+        // --- End update ---
+
+        if (OverStart(worldPos)) touchedStart = true;
+        if (OverEnd(worldPos)) touchedEnd = true;
+
+        if (touchedStart && OverEnd(worldPos) && AllCheckpointsHit())
+            CompleteStroke();
     }
-
-    if (OverStart(worldPos)) touchedStart = true;
-    if (OverEnd(worldPos)) touchedEnd = true;
-
-    if (touchedStart && OverEnd(worldPos) && AllCheckpointsHit())
-        CompleteStroke();
-}
 
     public void CheckTouchEnd(Vector2 worldPos)
     {

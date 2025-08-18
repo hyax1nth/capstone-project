@@ -306,6 +306,10 @@ MonoBehaviour:
   areaCollider: {fileID: 7979632844428211700}
   startCollider: {fileID: 8235904322003418192}
   endCollider: {fileID: 6127628285443701129}
+  checkpointLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  checkpointDetectRadius: 0.08
   linePrefab: {fileID: 225635096700394036, guid: 1a89e1c3702082a4cae35482a7ebd89f, type: 3}
   brushContainer: {fileID: 1707051221055835866}
   minPointDistance: 0.02
@@ -328,6 +332,7 @@ MonoBehaviour:
   idleHintDelay: 0.3
   idleHint: {fileID: 3839312912322083762}
   isStarter: 0
+  totalCheckpoints: 0
 --- !u!1 &3700332402239942059
 GameObject:
   m_ObjectHideFlags: 0
@@ -745,6 +750,10 @@ MonoBehaviour:
   areaCollider: {fileID: 2402704777283812834}
   startCollider: {fileID: 129042477752150157}
   endCollider: {fileID: 8102143554238900760}
+  checkpointLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  checkpointDetectRadius: 0.08
   linePrefab: {fileID: 225635096700394036, guid: 1a89e1c3702082a4cae35482a7ebd89f, type: 3}
   brushContainer: {fileID: 1707051221055835866}
   minPointDistance: 0.02
@@ -767,6 +776,7 @@ MonoBehaviour:
   idleHintDelay: 0.3
   idleHint: {fileID: 5167837340679182679}
   isStarter: 1
+  totalCheckpoints: 0
 --- !u!1 &4737474318428051189
 GameObject:
   m_ObjectHideFlags: 0
@@ -1816,6 +1826,10 @@ MonoBehaviour:
   areaCollider: {fileID: 2850284138498292473}
   startCollider: {fileID: 3514857575121262248}
   endCollider: {fileID: 3520077663348480789}
+  checkpointLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  checkpointDetectRadius: 0.08
   linePrefab: {fileID: 225635096700394036, guid: 1a89e1c3702082a4cae35482a7ebd89f, type: 3}
   brushContainer: {fileID: 1707051221055835866}
   minPointDistance: 0.02
@@ -1838,6 +1852,7 @@ MonoBehaviour:
   idleHintDelay: 0.3
   idleHint: {fileID: 7542545497417155118}
   isStarter: 0
+  totalCheckpoints: 0
 --- !u!1 &7497727048800314316
 GameObject:
   m_ObjectHideFlags: 0
@@ -1896,7 +1911,7 @@ MonoBehaviour:
   offsetDistance: 0.5
   alignRotationToPath: 0
   fixedZRotation: 50
-  playOnStart: 0
+  playOnStart: 1
   loop: 1
 --- !u!1 &8005863484442436216
 GameObject:

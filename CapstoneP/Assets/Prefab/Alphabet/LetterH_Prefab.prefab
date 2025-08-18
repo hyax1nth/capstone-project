@@ -213,7 +213,7 @@ MonoBehaviour:
   offsetDistance: 0.5
   alignRotationToPath: 0
   fixedZRotation: 50
-  playOnStart: 0
+  playOnStart: 1
   loop: 1
 --- !u!1 &465931109107224150
 GameObject:
@@ -499,6 +499,10 @@ MonoBehaviour:
   areaCollider: {fileID: 6975104177517104492}
   startCollider: {fileID: 2527560463617899613}
   endCollider: {fileID: 5513728967801269188}
+  checkpointLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  checkpointDetectRadius: 0.08
   linePrefab: {fileID: 225635096700394036, guid: 1a89e1c3702082a4cae35482a7ebd89f, type: 3}
   brushContainer: {fileID: 2139290607012361849}
   minPointDistance: 0.02
@@ -521,6 +525,7 @@ MonoBehaviour:
   idleHintDelay: 0.3
   idleHint: {fileID: 7287731597497348568}
   isStarter: 0
+  totalCheckpoints: 0
 --- !u!1 &1270447032515613090
 GameObject:
   m_ObjectHideFlags: 0
@@ -2179,6 +2184,10 @@ MonoBehaviour:
   areaCollider: {fileID: 5532114546874330557}
   startCollider: {fileID: 5559875826267844793}
   endCollider: {fileID: 905307153361237923}
+  checkpointLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  checkpointDetectRadius: 0.08
   linePrefab: {fileID: 225635096700394036, guid: 1a89e1c3702082a4cae35482a7ebd89f, type: 3}
   brushContainer: {fileID: 2139290607012361849}
   minPointDistance: 0.02
@@ -2201,6 +2210,7 @@ MonoBehaviour:
   idleHintDelay: 0.3
   idleHint: {fileID: 1102477882841918609}
   isStarter: 0
+  totalCheckpoints: 0
 --- !u!1 &8200025358152460418
 GameObject:
   m_ObjectHideFlags: 0
@@ -2361,6 +2371,10 @@ MonoBehaviour:
   areaCollider: {fileID: 1844536015008256458}
   startCollider: {fileID: 1064200333382645713}
   endCollider: {fileID: 8837746683212656621}
+  checkpointLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  checkpointDetectRadius: 0.08
   linePrefab: {fileID: 225635096700394036, guid: 1a89e1c3702082a4cae35482a7ebd89f, type: 3}
   brushContainer: {fileID: 2139290607012361849}
   minPointDistance: 0.02
@@ -2383,6 +2397,7 @@ MonoBehaviour:
   idleHintDelay: 0.3
   idleHint: {fileID: 2425477816081581604}
   isStarter: 1
+  totalCheckpoints: 0
 --- !u!1 &8739747734954691319
 GameObject:
   m_ObjectHideFlags: 0
