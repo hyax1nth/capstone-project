@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Firebase;
+using Firebase.Auth;
 using Firebase.Database;
 using UnityEngine;
 using UnityEngine.UI;
@@ -31,9 +33,44 @@ public class AdminDashboard : MonoBehaviour
     public GameObject progressRowPrefab; // prefab with columns for subject, lesson, status, stars (TMP Text children)
     public Button profileCloseButton;
 
-    private void Start()
+    private async void Start()
     {
         Debug.Log("AdminDashboard: Start()");
+
+        // Wait a short time for FirebaseInitializer to finish dependency checks and enable persistence.
+        // If there is no FirebaseInitializer in the scene, create a bootstrap object (matching SplashScreenController's behavior)
+        try
+        {
+            var existing = UnityEngine.Object.FindAnyObjectByType<FirebaseInitializer>();
+            if (existing == null)
+            {
+                Debug.Log("AdminDashboard: No FirebaseInitializer found in scene.");
+            }
+
+            if (!FirebaseInitializer.IsInitialized)
+            {
+                if (existing == null)
+                {
+                    Debug.LogWarning("AdminDashboard: Creating FirebaseBootstrap GameObject to initialize Firebase.");
+                    var go = new GameObject("FirebaseBootstrap");
+                    go.AddComponent<FirebaseInitializer>();
+                    UnityEngine.Object.DontDestroyOnLoad(go);
+                }
+
+                // Give Firebase more time to initialize (some platforms or slow networks can take longer)
+                bool ready = await WaitForFirebaseInitialized(15000);
+                if (!ready)
+                {
+                    Debug.LogError("AdminDashboard: Firebase not initialized in time. Database calls will be skipped.");
+                    if (noResultsText != null) noResultsText.gameObject.SetActive(true);
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("AdminDashboard: Exception while ensuring FirebaseInitializer exists: " + ex.Message);
+        }
 
         if (searchButton != null)
             searchButton.onClick.AddListener(() => SearchUsers(searchInput != null ? searchInput.text : ""));
@@ -48,8 +85,117 @@ public class AdminDashboard : MonoBehaviour
         if (homePanel != null) homePanel.SetActive(true);
         if (noResultsText != null) noResultsText.gameObject.SetActive(false);
 
+        // Wait for a signed-in user (email auth) before attempting DB reads
+        bool signedIn = await WaitForSignedInUser(10000);
+        if (!signedIn)
+        {
+            Debug.LogError("AdminDashboard: No signed-in user detected within timeout. Ensure user is authenticated before opening Admin scene.");
+            if (noResultsText != null) { noResultsText.gameObject.SetActive(true); noResultsText.text = "Not signed in."; }
+            return;
+        }
+
+        // Quick admin role check: ensure the signed-in user is allowed to view users
+        bool isAdmin = await IsCurrentUserAdmin();
+        if (!isAdmin)
+        {
+            Debug.LogError("AdminDashboard: Current user is not an admin (or lacks permission). DB reads will be blocked by security rules.");
+            if (noResultsText != null) { noResultsText.gameObject.SetActive(true); noResultsText.text = "Access denied: not an admin."; }
+            return;
+        }
+
         // Load all users into the homescreen list at start
         _ = LoadAllUsers();
+    }
+
+    // Wait (with timeout) for a Firebase authenticated user to be available
+    private async Task<bool> WaitForSignedInUser(int timeoutMs = 10000)
+    {
+        try
+        {
+            int waited = 0;
+            const int step = 200;
+            while (waited < timeoutMs)
+            {
+                var user = FirebaseAuth.DefaultInstance.CurrentUser;
+                if (user != null) return true;
+                await Task.Delay(step);
+                waited += step;
+            }
+            return FirebaseAuth.DefaultInstance.CurrentUser != null;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("AdminDashboard: Exception while waiting for signed-in user: " + ex.Message);
+            return false;
+        }
+    }
+
+    // Check whether the currently-signed-in user is listed under /admins/{uid} in the DB.
+    // Returns true if the admin node exists and is truthy. Logs detailed errors if the read is denied.
+    private async Task<bool> IsCurrentUserAdmin()
+    {
+        try
+        {
+            var user = FirebaseAuth.DefaultInstance.CurrentUser;
+            if (user == null)
+            {
+                Debug.LogWarning("IsCurrentUserAdmin: no current user");
+                return false;
+            }
+
+            var adminRef = FirebaseDatabase.DefaultInstance.RootReference.Child($"admins/{user.UserId}");
+            DataSnapshot snap = null;
+            try
+            {
+                snap = await adminRef.GetValueAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("IsCurrentUserAdmin: GetValueAsync failed for admins node: " + ex);
+                return false;
+            }
+
+            if (snap == null || !snap.Exists) return false;
+            // If value is boolean true or string "true", consider admin
+            var v = snap.Value;
+            if (v is bool b) return b;
+            if (v is string s && string.Equals(s, "true", StringComparison.OrdinalIgnoreCase)) return true;
+            // if child named 'isAdmin' exists
+            if (snap.HasChild("isAdmin"))
+            {
+                var c = snap.Child("isAdmin");
+                if (c.Exists && c.Value is bool cb) return cb;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("IsCurrentUserAdmin: unexpected error: " + ex);
+            return false;
+        }
+    }
+
+    // Wait (with timeout) for the project's FirebaseInitializer to report it's ready.
+    private async Task<bool> WaitForFirebaseInitialized(int timeoutMs = 8000)
+    {
+        try
+        {
+            int waited = 0;
+            const int step = 200;
+            while (waited < timeoutMs)
+            {
+                if (FirebaseInitializer.IsInitialized) return true;
+                await Task.Delay(step);
+                waited += step;
+            }
+            // One final check
+            return FirebaseInitializer.IsInitialized;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("AdminDashboard: Exception while waiting for Firebase initialization: " + ex.Message);
+            return false;
+        }
     }
 
     public async void SearchUsers(string query)
@@ -62,8 +208,19 @@ public class AdminDashboard : MonoBehaviour
         try
         {
             var usersRef = FirebaseDatabase.DefaultInstance.RootReference.Child("users");
-            var snapshot = await usersRef.GetValueAsync();
-            if (!snapshot.Exists)
+            DataSnapshot snapshot = null;
+            try
+            {
+                snapshot = await usersRef.GetValueAsync();
+            }
+            catch (Exception exGet)
+            {
+                Debug.LogError("AdminDashboard: SearchUsers GetValueAsync failed: " + exGet);
+                if (noResultsText != null) noResultsText.gameObject.SetActive(true);
+                return;
+            }
+
+            if (snapshot == null || !snapshot.Exists)
             {
                 if (noResultsText != null) noResultsText.gameObject.SetActive(true);
                 return;
@@ -159,9 +316,20 @@ public class AdminDashboard : MonoBehaviour
         try
         {
             var usersRef = FirebaseDatabase.DefaultInstance.RootReference.Child("users");
-            var snapshot = await usersRef.GetValueAsync();
-            Debug.Log($"AdminDashboard: LoadAllUsers snapshot.Exists={snapshot.Exists}");
-            if (!snapshot.Exists)
+            DataSnapshot snapshot = null;
+            try
+            {
+                snapshot = await usersRef.GetValueAsync();
+            }
+            catch (Exception exGet)
+            {
+                Debug.LogError("AdminDashboard: LoadAllUsers GetValueAsync failed: " + exGet);
+                if (noResultsText != null) noResultsText.gameObject.SetActive(true);
+                return;
+            }
+
+            Debug.Log($"AdminDashboard: LoadAllUsers snapshot.Exists={(snapshot != null && snapshot.Exists)}");
+            if (snapshot == null || !snapshot.Exists)
             {
                 if (noResultsText != null) noResultsText.gameObject.SetActive(true);
                 return;
@@ -195,9 +363,18 @@ public class AdminDashboard : MonoBehaviour
         if (profilePanel != null) profilePanel.gameObject.SetActive(true);
         if (profileNameText != null) profileNameText.text = "(loading...)";
 
-        var profileSnap = await FirebaseDatabase.DefaultInstance.RootReference.Child($"users/{uid}/profile").GetValueAsync();
+        DataSnapshot profileSnap = null;
+        try
+        {
+            profileSnap = await FirebaseDatabase.DefaultInstance.RootReference.Child($"users/{uid}/profile").GetValueAsync();
+        }
+        catch (Exception exGet)
+        {
+            Debug.LogError("AdminDashboard: OpenProfile GetValueAsync failed for uid=" + uid + " : " + exGet);
+            return;
+        }
 
-        if (profileSnap.Exists)
+        if (profileSnap != null && profileSnap.Exists)
         {
             string name = profileSnap.HasChild("displayName") ? profileSnap.Child("displayName").Value.ToString() : "(unknown)";
             if (profileNameText != null) profileNameText.text = name;
@@ -241,5 +418,39 @@ public class AdminDashboard : MonoBehaviour
     public void CloseProfile()
     {
         if (profilePanel != null) profilePanel.gameObject.SetActive(false);
+    }
+
+    // Public test method: wire to a dev-only button to run a quick DB/auth diagnostic.
+    public async void TestDbConnection()
+    {
+        try
+        {
+            var app = FirebaseApp.DefaultInstance;
+            Debug.Log($"TestDbConnection: FirebaseApp name={app.Name} dbUrl={app.Options.DatabaseUrl}");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("TestDbConnection: No FirebaseApp instance: " + ex);
+        }
+
+        try
+        {
+            var user = FirebaseAuth.DefaultInstance.CurrentUser;
+            Debug.Log(user != null ? $"TestDbConnection: Auth user uid={user.UserId} email={user.Email}" : "TestDbConnection: no auth user");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("TestDbConnection: Auth check failed: " + ex);
+        }
+
+        try
+        {
+            var snap = await FirebaseDatabase.DefaultInstance.RootReference.Child("users").GetValueAsync();
+            Debug.Log($"TestDbConnection: read users ok exists={snap.Exists} children={snap.ChildrenCount}");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("TestDbConnection: DB read failed: " + ex);
+        }
     }
 }
