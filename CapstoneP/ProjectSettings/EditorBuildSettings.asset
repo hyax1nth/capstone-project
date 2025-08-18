@@ -5,51 +5,21 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
-    path: Assets/Scenes/SampleScene.unity
-    guid: 8c9cfa26abfee488c85f1582747f6a02
   - enabled: 1
     path: Assets/Scenes/SplashScreen.unity
     guid: 3d26d9155b577cf46a8ffbbc6920118a
   - enabled: 1
-    path: Assets/Scenes/AppBootstrap.unity
-    guid: f52efbc604fc45e4b931fb602386c85c
-  - enabled: 1
-    path: Assets/Scenes/MainMenu.unity
+    path: Assets/Scenes/Login.unity
     guid: 3bae8f66672ba3c4486c116bcd337a00
-  - enabled: 1
-    path: Assets/Scenes/SignIn.unity
-    guid: bcca566877a0ec74496d817549b68d25
-  - enabled: 1
-    path: Assets/Scenes/SignUp.unity
-    guid: 7a02a0f69aaff20468e46870cce10cc6
-  - enabled: 1
-    path: Assets/Scenes/OnboardingAge.unity
-    guid: 468183ddf9c2c93488fbb9916d659aa0
-  - enabled: 1
-    path: Assets/Scenes/OnboardingSubjects.unity
-    guid: 4292b21cc0611d945a71c977f01797cf
-  - enabled: 1
-    path: Assets/Scenes/StudentDashboard.unity
-    guid: bde03027e6fea3943a1391aeaddd9356
+  - enabled: 0
+    path: Assets/Scenes/FirebaseBootstrap.unity
+    guid: 3559b6242ad26794dba29efd8123f4a8
   - enabled: 1
     path: Assets/Scenes/AdminDashboard.unity
-    guid: 9bd2a1d71541fbd4db1048582219f66c
+    guid: a536927460a21e848987d8de92c39ae2
   - enabled: 1
-    path: Assets/Scenes/StudentDetail.unity
-    guid: a88856bcb1dcd164999ac68ddb2fa54a
-  - enabled: 1
-    path: Assets/Scenes/Lesson_Tap.unity
-    guid: f25dbc4b1f242ff4997a854d1ee8ab7b
-  - enabled: 1
-    path: Assets/Scenes/Lesson_Drag.unity
-    guid: 915c9b7a6a87e1342ad9142416a6b52a
-  - enabled: 1
-    path: Assets/Scenes/Lesson_Swipe.unity
-    guid: c1a39fc73ecd0cb4eaa99c3a170583e4
-  - enabled: 1
-    path: Assets/Scenes/Lesson_Speech.unity
-    guid: 858e296f779c2c542aaf95bdcbb80bfa
+    path: Assets/Scenes/StudentDashboard.unity
+    guid: d74819145b8c1e44fa08f5123773160e
   m_configObjects:
     com.unity.adaptiveperformance.google.android.provider_settings: {fileID: 11400000, guid: 12a3703a1221390448e875e27092ea4f, type: 2}
     com.unity.adaptiveperformance.loader_settings: {fileID: 11400000, guid: e7aab254d6b945b4c840e0121d4f48c7, type: 2}

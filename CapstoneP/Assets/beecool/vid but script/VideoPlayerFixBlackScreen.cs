@@ -28,25 +28,72 @@ public class VideoPlayerFixBlackScreen : MonoBehaviour
         // Start hidden
         canvasGroup.alpha = 0;
 
-        // Create render texture with transparency
-        renderTexture = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32);
-        renderTexture.Create();
+        // Validate inputs
+        if (rawImage == null)
+        {
+            Debug.LogError("VideoPlayerFixBlackScreen: rawImage is not assigned.");
+            return;
+        }
 
-        // Set up video player
-        videoPlayer.renderMode = VideoRenderMode.RenderTexture;
-        videoPlayer.targetTexture = renderTexture;
-        rawImage.texture = renderTexture;
+        if (width <= 0 || height <= 0)
+        {
+            Debug.LogWarning($"VideoPlayerFixBlackScreen: invalid width/height ({width}x{height}), falling back to 640x360.");
+            width = 640; height = 360;
+        }
 
-        // Register prepare completed callback
-        videoPlayer.prepareCompleted += OnVideoPrepared;
+        // Create render texture with transparency - defensive creation to avoid D3D12 shared-handle failures
+        try
+        {
+            renderTexture = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32);
+            renderTexture.useMipMap = false;
+            renderTexture.autoGenerateMips = false;
+            renderTexture.Create();
+
+            // Set up video player render mode; defer assigning targetTexture until the player is prepared
+            videoPlayer.renderMode = VideoRenderMode.RenderTexture;
+            // Register prepare completed callback
+            videoPlayer.prepareCompleted += OnVideoPrepared;
+            try
+            {
+                // Prepare the video; assignment of targetTexture and Play will happen in OnVideoPrepared
+                videoPlayer.Prepare();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"VideoPlayerFixBlackScreen: Prepare() threw: {ex.Message}");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"VideoPlayerFixBlackScreen: failed creating RenderTexture or assigning it: {ex.Message}");
+            // Ensure we don't leave a dangling assignment
+            if (videoPlayer != null) videoPlayer.targetTexture = null;
+            if (renderTexture != null)
+            {
+                try { renderTexture.Release(); } catch { }
+                try { Destroy(renderTexture); } catch { }
+                renderTexture = null;
+            }
+        }
     }
 
     private void OnVideoPrepared(VideoPlayer source)
     {
+        // Assign the renderTexture to the video player now that it's prepared.
+        try
+        {
+            if (videoPlayer != null) videoPlayer.targetTexture = renderTexture;
+            if (rawImage != null) rawImage.texture = renderTexture;
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"VideoPlayerFixBlackScreen: failed assigning targetTexture on prepare: {ex.Message}");
+        }
+
         // Start fade in when video is prepared
         StartCoroutine(FadeIn());
-        
-        // Ensure video loops smoothly
+
+        // Ensure video loops smoothly and start playback
         videoPlayer.isLooping = true;
         videoPlayer.Play();
     }
@@ -68,8 +115,10 @@ public class VideoPlayerFixBlackScreen : MonoBehaviour
         // Clean up
         if (renderTexture != null)
         {
-            renderTexture.Release();
-            Destroy(renderTexture);
+            // Clear the video player's target before releasing to avoid D3D shared-handle errors on Windows
+            if (videoPlayer != null) videoPlayer.targetTexture = null;
+            try { renderTexture.Release(); } catch { }
+            try { Destroy(renderTexture); } catch { }
         }
 
         if (videoPlayer != null)

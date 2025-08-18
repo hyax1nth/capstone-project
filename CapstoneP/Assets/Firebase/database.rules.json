@@ -2,30 +2,61 @@
   "rules": {
     "users": {
       "$uid": {
-        ".read": "$uid === auth.uid || root.child('users/'+auth.uid+'/role').val() === 'admin'",
-        ".write": "$uid === auth.uid || root.child('users/'+auth.uid+'/role').val() === 'admin'",
-        "progress": {
-          "$subject": {
-            ".validate": "newData.hasChildren(['lessonCompleted', 'score'])",
-            "lessonCompleted": {
-              ".validate": "newData.isNumber() && newData.val() >= 0"
-            },
-            "score": {
-              ".validate": "newData.isNumber() && newData.val() >= 0"
+        "profile": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')",
+          ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')",
+          "displayName": { 
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100" 
+          },
+          "displayNameLower": { ".validate": "newData.isString()" },
+          "age": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 7" },
+          "gender": { ".validate": "newData.isString() && (newData.val() === 'male' || newData.val() === 'female' || newData.val() === 'unspecified')" },
+          "avatar": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100" },
+          "preferredSubjects": {
+            "$i": { 
+              ".validate": "newData.isString() && (newData.val() === 'Alphabet' || newData.val() === 'Numbers' || newData.val() === 'Reading' || newData.val() === 'Match')" 
             }
+          },
+          "role": { ".validate": "newData.isString() && (newData.val() === 'student' || newData.val() === 'admin')" },
+          "createdAt": { ".validate": "newData.isNumber()" },
+          "lastLoginAt": { ".validate": "newData.isNumber()" }
+        },
+        "stats": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')",
+          ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')",
+          "totalStars": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "completedLessons": { "$lesson": { ".validate": "newData.isString()" } },
+          "mostPlayedLesson": { ".validate": "newData.isString()" },
+          "lessonPlayCounts": { "$lessonKey": { ".validate": "newData.isNumber() && newData.val() >= 0" } }
+        }
+      }
+    },
+
+    "progress": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')",
+        "$subject": {
+          ".validate": "auth != null && ($subject === 'Alphabet' || $subject === 'Numbers' || $subject === 'Reading' || $subject === 'Match')",
+          "$lessonId": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')",
+            ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('profile').child('role').val() === 'admin')",
+            ".validate": "newData.hasChildren(['unlocked','completionStatus','score','timeSpentMs','attemptsMade','lastPlayedAt','correct','incorrect','lessonType'])",
+            "unlocked": { ".validate": "newData.isBoolean()" },
+            "completionStatus": { ".validate": "newData.isBoolean()" },
+            "score": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" },
+            "timeSpentMs": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "attemptsMade": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "lastPlayedAt": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "correct": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "incorrect": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "lessonType": { ".validate": "newData.isString() && (newData.val() === 'tracing' || newData.val() === 'quiz' || newData.val() === 'other')" }
           }
         }
       }
     },
-    "catalog": {
-      ".read": "auth != null",
-      ".write": "root.child('users/'+auth.uid+'/role').val() === 'admin'"
-    },
-    "summaries": {
-      "$uid": {
-        ".read": "$uid === auth.uid || root.child('users/'+auth.uid+'/role').val() === 'admin'",
-        ".write": "root.child('users/'+auth.uid+'/role').val() === 'admin'"
-      }
-    }
+
+    ".read": false,
+    ".write": false
   }
 }

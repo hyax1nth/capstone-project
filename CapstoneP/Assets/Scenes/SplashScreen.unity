@@ -145,11 +145,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 134493563}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9ec1952e32c27c04da1421d3ca942c59, type: 3}
+  m_Script: {fileID: 11500000, guid: e5ecbf15bd2d5c64e919afcdf79cc4a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  videoPlayer: {fileID: 796042231}
-  nextSceneName: MainMenu
+  nextScene: Login
+  displayTime: 5
+  fadeDuration: 0.9
+  splashCanvas: {fileID: 831273628}
+  skipButton: {fileID: 0}
+  loadAsync: 1
+  waitForFirebase: 1
+  firebaseInitTimeout: 10
 --- !u!4 &134493565
 Transform:
   m_ObjectHideFlags: 0
@@ -159,11 +165,11 @@ Transform:
   m_GameObject: {fileID: 134493563}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 528.34045, y: -397.12988, z: 0}
+  m_LocalPosition: {x: 541.5379, y: 977.75964, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1591695106}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &206804058
 GameObject:
@@ -197,10 +203,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 831273629}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -0.0009765625, y: 0}
-  m_SizeDelta: {x: 44.998, y: 97.5}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0.00078583, y: 0.0081825}
+  m_SizeDelta: {x: 833.33, y: 1805.6}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &206804060
 MonoBehaviour:
@@ -402,7 +408,7 @@ VideoPlayer:
   m_ControlledAudioTrackCount: 0
   m_PlayOnAwake: 1
   m_SkipOnDrop: 1
-  m_Looping: 0
+  m_Looping: 1
   m_WaitForFirstFrame: 1
   m_FrameReadyEventEnabled: 0
   m_VideoShaders: []
@@ -503,7 +509,7 @@ RectTransform:
   - {fileID: 206804059}
   - {fileID: 1598870153}
   - {fileID: 796042229}
-  m_Father: {fileID: 1591695106}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -647,39 +653,6 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
---- !u!1 &1591695105
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1591695106}
-  m_Layer: 0
-  m_Name: GameObject
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1591695106
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1591695105}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 13.19743, y: 1374.8895, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 134493565}
-  - {fileID: 831273629}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1598870152
 GameObject:
   m_ObjectHideFlags: 0
@@ -758,4 +731,5 @@ SceneRoots:
   m_Roots:
   - {fileID: 941747754}
   - {fileID: 652272164}
-  - {fileID: 1591695106}
+  - {fileID: 831273629}
+  - {fileID: 134493565}
