@@ -121,10 +121,10 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 186
-        height: 209
+        width: 358
+        height: 398
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -137,33 +137,11 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
-    - serializedVersion: 2
-      name: guide 3_4_1
-      rect:
-        serializedVersion: 2
-        x: 185
-        y: 203
-        width: 173
-        height: 195
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 31fdd64d1fa07e860800000000000000
-      internalID: 7559022533332033299
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: e9fd5930a354f6c46b413334f76acbc5
     internalID: 0
     vertices: []
     indices: 
