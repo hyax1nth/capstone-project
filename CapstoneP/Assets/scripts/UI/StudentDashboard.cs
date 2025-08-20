@@ -15,6 +15,10 @@ public class StudentDashboard : MonoBehaviour
     public float avatarHoverAmplitude = 6f; // pixels
     public float avatarHoverSpeed = 1.5f; // cycles per second
     public float avatarRotateAmount = 6f; // degrees
+    // Hover effects
+    public ParticleSystem avatarHoverParticles;
+    public float avatarWobbleScale = 1.08f; // max scale on hover
+    public float avatarWobbleSpeed = 6f; // lerp speed for scale changes
     public TMPro.TMP_Text nameText;
     public Button logoutButton;
     public Button exitButton;
@@ -122,6 +126,8 @@ public class StudentDashboard : MonoBehaviour
     // internal avatar animation state
     private Vector2 _avatarBasePos = Vector2.zero;
     private float _avatarAnimTime = 0f;
+    private bool _avatarHovered = false;
+    private Vector3 _avatarBaseScale = Vector3.one;
 
     private void auth_manager_signout()
     {
@@ -172,6 +178,28 @@ public class StudentDashboard : MonoBehaviour
             avatarImage.rectTransform.anchoredPosition = _avatarBasePos + new Vector2(0f, y);
             avatarImage.rectTransform.localRotation = Quaternion.Euler(0f, 0f, rot);
         }
+
+        // handle avatar hover scale wobble
+        if (avatarImage != null)
+        {
+            if (_avatarBaseScale == Vector3.one) _avatarBaseScale = avatarImage.rectTransform.localScale;
+            float targetScale = _avatarHovered ? avatarWobbleScale : 1f;
+            float s = Mathf.Lerp(avatarImage.rectTransform.localScale.x, _avatarBaseScale.x * targetScale, Time.deltaTime * avatarWobbleSpeed);
+            avatarImage.rectTransform.localScale = new Vector3(s, s, s);
+        }
+    }
+
+    // Public methods to wire via EventTrigger on the avatar GameObject
+    public void OnAvatarPointerEnter()
+    {
+        _avatarHovered = true;
+        if (avatarHoverParticles != null) avatarHoverParticles.Play();
+    }
+
+    public void OnAvatarPointerExit()
+    {
+        _avatarHovered = false;
+        if (avatarHoverParticles != null) avatarHoverParticles.Stop();
     }
 
     public void ToggleSubjectPanel(string subject)
@@ -201,9 +229,14 @@ public class StudentDashboard : MonoBehaviour
                 .Child($"progress/{user.UserId}/{sp.subjectName}/{lid}").GetValueAsync();
 
             bool unlocked = false;
+            bool completed = false;
             if (snapshot.Exists && snapshot.Child("unlocked").Exists)
             {
                 unlocked = bool.Parse(snapshot.Child("unlocked").Value.ToString());
+                if (snapshot.Child("completionStatus").Exists)
+                {
+                    completed = bool.Parse(snapshot.Child("completionStatus").Value.ToString());
+                }
             }
             else
             {
@@ -217,19 +250,69 @@ public class StudentDashboard : MonoBehaviour
             try
             {
                 var btnTf = sp.lessonButtons[i].transform;
-                var lockTf = btnTf.Find("LockOverlay");
-                if (lockTf == null)
-                {
-                    // try common names
-                    lockTf = btnTf.Find("Lock") ?? btnTf.Find("LockImage") ?? btnTf.Find("lock");
-                }
+                // For fade, prefer a CanvasGroup attached to the overlay
+                var lockTf = btnTf.Find("LockOverlay") ?? btnTf.Find("Lock") ?? btnTf.Find("LockImage") ?? btnTf.Find("lock");
                 if (lockTf != null)
                 {
-                    lockTf.gameObject.SetActive(!unlocked);
+                    var cg = lockTf.GetComponent<CanvasGroup>();
+                    if (cg == null)
+                    {
+                        cg = lockTf.gameObject.AddComponent<CanvasGroup>();
+                        // initialize alpha based on unlocked state
+                        cg.alpha = unlocked ? 0f : 1f;
+                        cg.interactable = false;
+                        cg.blocksRaycasts = false;
+                    }
+                    // animate fade
+                    StartCoroutine(FadeCanvasGroup(cg, unlocked ? 0f : 1f, 0.22f));
+                }
+
+                // Current lesson highlight
+                var currentTf = btnTf.Find("CurrentHighlight");
+                if (currentTf != null)
+                {
+                    // Determine 'current' by comparing LessonRegistry values if present
+                    string currentSubject = LessonRegistry.Get("subject", null);
+                    string currentLesson = LessonRegistry.Get("lessonId", null);
+                    bool isCurrent = currentSubject == sp.subjectName && currentLesson == lid;
+                    currentTf.gameObject.SetActive(isCurrent);
+                }
+
+                // Completed stars visual: look for child 'Stars' which contains star GameObjects named 'Star1'..
+                var starsTf = btnTf.Find("Stars");
+                if (starsTf != null)
+                {
+                    int starCount = 0;
+                    if (completed)
+                    {
+                        if (snapshot.Child("score").Exists)
+                        {
+                            int.TryParse(snapshot.Child("score").Value.ToString(), out starCount);
+                        }
+                    }
+                    // enable stars up to starCount
+                    for (int si = 0; si < starsTf.childCount; si++)
+                    {
+                        var sgo = starsTf.GetChild(si).gameObject;
+                        sgo.SetActive(si < starCount);
+                    }
                 }
             }
             catch { }
         }
+    }
+
+    private System.Collections.IEnumerator FadeCanvasGroup(CanvasGroup cg, float target, float duration)
+    {
+        float start = cg.alpha;
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            cg.alpha = Mathf.Lerp(start, target, t / duration);
+            yield return null;
+        }
+        cg.alpha = target;
     }
 
     private void OnLessonButtonClicked(string subject, string lessonId)

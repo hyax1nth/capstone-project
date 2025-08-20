@@ -15,7 +15,7 @@ public class LessonTemplate : MonoBehaviour
 
     private void Start()
     {
-        progressService = FindObjectOfType<ProgressService>();
+    progressService = UnityEngine.Object.FindAnyObjectByType<ProgressService>();
         if (LessonSession.Instance == null)
         {
             UnityEngine.Debug.LogWarning("LessonTemplate: LessonSession not found. Make sure a LessonSession exists in the base scene.");
@@ -28,9 +28,10 @@ public class LessonTemplate : MonoBehaviour
     public async void OnFinishClicked()
     {
         // Fake result for testing
-        string subject = LessonSession.Instance?.subject ?? "Alphabet";
-        string lessonId = LessonSession.Instance?.lessonId ?? "L1";
-        string lessonType = LessonSession.Instance?.lessonType ?? "template";
+    // Prefer LessonRegistry (set by StudentDashboard) then fallback to LessonSession
+    string subject = LessonRegistry.Get("subject", LessonSession.Instance?.subject ?? "Alphabet");
+    string lessonId = LessonRegistry.Get("lessonId", LessonSession.Instance?.lessonId ?? "L1");
+    string lessonType = LessonRegistry.Get("lessonType", LessonSession.Instance?.lessonType ?? "template");
         int correct = 3;
         int incorrect = 0;
         long timeMs = 10000;
