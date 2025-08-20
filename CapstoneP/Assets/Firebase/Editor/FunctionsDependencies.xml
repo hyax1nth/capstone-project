@@ -1,0 +1,9 @@
+<!-- Copyright (C) 2019 Google Inc. All Rights Reserved.
+
+FirebaseFunctions iOS and Android Dependencies.
+-->
+
+<!-- Firebase Functions support disabled in this repository. -->
+<dependencies>
+  <!-- Intentionally empty to avoid pulling Functions packages. -->
+</dependencies>

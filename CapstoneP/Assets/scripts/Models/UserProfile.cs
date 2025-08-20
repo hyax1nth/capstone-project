@@ -9,6 +9,7 @@ public class UserProfile
     public int age;
     public string gender; // "male", "female", "unspecified"
     public string avatar; // key of avatar image
+    public string email;
     public List<string> preferredSubjects = new List<string>();
     public string role; // "student" or "admin"
     public long createdAt;

@@ -451,7 +451,7 @@ public class LoginUIManager : MonoBehaviour
             return;
         }
 
-    // Persist signed-in uid for session continuity
+    // Persist signed-in uid for session continuity (role saved after we read it)
     PlayerPrefs.SetString("lastSignedInUid", user.UserId);
     PlayerPrefs.Save();
 
@@ -469,11 +469,16 @@ public class LoginUIManager : MonoBehaviour
 
         if (!string.IsNullOrEmpty(role) && role == "admin")
         {
+            // save role
+            PlayerPrefs.SetString("lastSignedInRole", role);
+            PlayerPrefs.Save();
             SceneManager.LoadScene("AdminDashboard");
             return;
         }
         else if (!string.IsNullOrEmpty(role))
         {
+            PlayerPrefs.SetString("lastSignedInRole", role);
+            PlayerPrefs.Save();
             SceneManager.LoadScene("StudentDashboard");
             return;
         }
@@ -484,6 +489,7 @@ public class LoginUIManager : MonoBehaviour
             pendingProfile = new UserProfile
             {
                 displayName = user.DisplayName ?? "",
+                email = user.Email ?? "",
                 role = "student"
             };
             ShowPanel(onboardingAgeGenderPanel);
@@ -516,6 +522,7 @@ public class LoginUIManager : MonoBehaviour
         pendingProfile = new UserProfile
         {
             displayName = displayName,
+            email = email,
             role = role
         };
 

@@ -10,6 +10,11 @@ using UnityEngine.UI;
 public class StudentDashboard : MonoBehaviour
 {
     public Image avatarImage; // to display avatar; map avatar key -> sprite via avatarSprites
+    [Header("Avatar Animation")]
+    public bool animateAvatar = true;
+    public float avatarHoverAmplitude = 6f; // pixels
+    public float avatarHoverSpeed = 1.5f; // cycles per second
+    public float avatarRotateAmount = 6f; // degrees
     public TMPro.TMP_Text nameText;
     public Button logoutButton;
     public Button exitButton;
@@ -107,7 +112,16 @@ public class StudentDashboard : MonoBehaviour
 
         // Load profile and set avatar/name
         StartCoroutine(LoadProfileAndPopulate());
+        // capture base avatar rect position for animation
+        if (avatarImage != null)
+        {
+            _avatarBasePos = avatarImage.rectTransform.anchoredPosition;
+        }
     }
+
+    // internal avatar animation state
+    private Vector2 _avatarBasePos = Vector2.zero;
+    private float _avatarAnimTime = 0f;
 
     private void auth_manager_signout()
     {
@@ -147,6 +161,19 @@ public class StudentDashboard : MonoBehaviour
         }
     }
 
+    private void Update()
+    {
+        // animate avatar hovering if enabled
+        if (animateAvatar && avatarImage != null)
+        {
+            _avatarAnimTime += Time.deltaTime * avatarHoverSpeed * Mathf.PI * 2f;
+            float y = Mathf.Sin(_avatarAnimTime) * avatarHoverAmplitude;
+            float rot = Mathf.Sin(_avatarAnimTime * 0.9f) * avatarRotateAmount;
+            avatarImage.rectTransform.anchoredPosition = _avatarBasePos + new Vector2(0f, y);
+            avatarImage.rectTransform.localRotation = Quaternion.Euler(0f, 0f, rot);
+        }
+    }
+
     public void ToggleSubjectPanel(string subject)
     {
         // Hide the home panel and show only the requested subject panel while hiding others
@@ -178,8 +205,30 @@ public class StudentDashboard : MonoBehaviour
             {
                 unlocked = bool.Parse(snapshot.Child("unlocked").Value.ToString());
             }
+            else
+            {
+                // By default, unlock the first lesson (L1) if no progress data exists
+                if (i == 0) unlocked = true;
+            }
 
             sp.lessonButtons[i].interactable = unlocked;
+
+            // Manage lock overlay: look for a child named 'LockOverlay' under the button
+            try
+            {
+                var btnTf = sp.lessonButtons[i].transform;
+                var lockTf = btnTf.Find("LockOverlay");
+                if (lockTf == null)
+                {
+                    // try common names
+                    lockTf = btnTf.Find("Lock") ?? btnTf.Find("LockImage") ?? btnTf.Find("lock");
+                }
+                if (lockTf != null)
+                {
+                    lockTf.gameObject.SetActive(!unlocked);
+                }
+            }
+            catch { }
         }
     }
 
@@ -190,9 +239,8 @@ public class StudentDashboard : MonoBehaviour
     LessonRegistry.Set("subject", subject);
     LessonRegistry.Set("lessonId", lessonId);
     LessonRegistry.Set("lessonType", "template");
-
-    // Use scene naming convention: Lesson_{subject}_{lessonId}, e.g. Lesson_Alphabet_L1
-    string sceneName = $"Lesson_{subject}_{lessonId}";
+    // Use scene naming convention: Subject + LessonId, e.g. AlphabetL1
+    string sceneName = $"{subject}{lessonId}";
     var op = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(sceneName, UnityEngine.SceneManagement.LoadSceneMode.Additive);
     if (op == null) Debug.LogError($"Failed to load lesson scene '{sceneName}'. Make sure it's added to Build Settings.");
     }

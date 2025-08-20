@@ -99,6 +99,22 @@ public class SplashScreenController : MonoBehaviour
             yield return StartCoroutine(WaitForFirebase(firebaseInitTimeout));
         }
 
+        // Auto-route based on saved last signed-in info to skip login if possible
+        var lastUid = PlayerPrefs.GetString("lastSignedInUid", "");
+        var lastRole = PlayerPrefs.GetString("lastSignedInRole", "");
+        if (!string.IsNullOrEmpty(lastUid) && !string.IsNullOrEmpty(lastRole))
+        {
+            string target = null;
+            if (string.Equals(lastRole, "admin", System.StringComparison.OrdinalIgnoreCase)) target = "AdminDashboard";
+            else target = "StudentDashboard";
+            if (!string.IsNullOrEmpty(target) && IsSceneInBuild(target))
+            {
+                Debug.Log($"SplashScreenController: auto-routing to '{target}' based on saved role='{lastRole}' uid={lastUid}");
+                if (loadAsync) yield return StartCoroutine(LoadSceneAsync(target)); else SceneManager.LoadScene(target);
+                yield break;
+            }
+        }
+
         if (string.IsNullOrEmpty(nextScene))
         {
             Debug.LogWarning("SplashScreenController: nextScene is empty. Splash will end but no scene will be loaded.");
